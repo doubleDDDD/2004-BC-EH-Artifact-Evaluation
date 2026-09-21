@@ -116,6 +116,7 @@ modules.order
 !.mailmap
 !.pylintrc
 !.rustfmt.toml
+!.config
 
 #
 # Generated include files
@@ -183,6 +184,3 @@ sphinx_*/
 
 # Rust analyzer configuration
 /rust-project.json
-
-debug_kernel
-bc_eh_test

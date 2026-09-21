@@ -1,0 +1,10 @@
+#!/bin/busybox sh
+mount -t proc proc /proc  # -t means type
+mount -t sysfs sysfs /sys
+mount -t debugfs nodev /sys/kernel/debug  # debugfs /sys/kernel/debug下会有trace数据
+# /proc/sys/kernel # cat hotplug 
+# /sbin/mdev
+echo ">>> 123456789 <<<" > /dev/kmsg
+/bin/echo /sbin/mdev > /proc/sys/kernel/hotplug
+mdev -s  # scan devices in /sys and call mknod to gen in /dev
+exec /sbin/init

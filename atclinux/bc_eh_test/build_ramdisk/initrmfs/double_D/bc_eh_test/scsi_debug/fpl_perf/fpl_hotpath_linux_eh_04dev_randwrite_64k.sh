@@ -1,0 +1,10 @@
+#!/bin/sh
+set -eu
+
+# FPL hot-path case: linux_eh / 4 active sdev / randwrite / 64k
+SCRIPT_DIR="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"
+
+BC_EH_FPL_EH_MODE=host \
+BC_EH_FPL_ACTIVE_DISKS=4 \
+BC_EH_FPL_WORKLOAD=randwrite_64k \
+exec sh "${SCRIPT_DIR}/run_fpl_hotpath_case.sh" "$@"

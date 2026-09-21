@@ -1,2 +1,3 @@
 build_ramdisk/initrmfs/double_D/modules/*.ko
 build_ramdisk/manual_ramdisk.img
+auto_ramdisk.img

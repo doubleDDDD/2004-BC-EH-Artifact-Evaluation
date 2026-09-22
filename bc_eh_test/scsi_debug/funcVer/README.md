@@ -2,29 +2,26 @@
 
 This directory is reserved for `bc-eh` function verification.
 
-The subdirectories map to the non-empty reset-handler combinations covered by
-the `scsi_eh_check_point()` `if / else if` branches, plus the final
-`Implement nothing` branch.
+Each subdirectory name encodes which SCSI reset handlers are available in the
+`scsi_debug` test driver for that functional-verification group. The four
+handler names mean:
 
-Naming rule:
-- `01_device`
-- `02_target`
-- `03_bus`
-- `04_host`
-- `05_device_target`
-- `06_device_bus`
-- `07_device_host`
-- `08_target_bus`
-- `09_target_host`
-- `10_bus_host`
-- `11_device_target_bus`
-- `12_device_target_host`
-- `13_device_bus_host`
-- `14_target_bus_host`
-- `15_device_target_bus_host`
-- `16_none`
+- `device`: device reset handler is available
+- `target`: target reset handler is available
+- `bus`: bus reset handler is available
+- `host`: host reset handler is available
 
-Current minimal cases:
+For example, `06_device_bus` means that the group enables the device-reset and
+bus-reset handlers, but does not provide target-reset or host-reset handlers.
+`15_device_target_bus_host` means all four reset handlers are available.
+`16_none` means no reset handler is available, so BC-EH should converge to the
+offline path.
+
+These groups are not paper P1-P9 cases. They are functional-validation groups
+used to exercise the BC-EH branch logic for different LLDD reset-handler
+capabilities.
+
+Functional Case Coverage:
 - `01_device`: `D1_device_terminal_success`
 - `02_target`: `T1_target_terminal_success`
 - `03_bus`: `B1_bus_terminal_success`

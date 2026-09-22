@@ -58,6 +58,7 @@ HBA_PARAMETER_1 += -device intel-iommu,intremap=on,caching-mode=on # The key poi
 HBA_PARAMETER_2 := -device vfio-pci,host=$(HBA_HOST)
 
 
+# Base Ubuntu image used as the backing image for other guest qcow2 images.
 BASE_PARAMETER := -name ubuntu-base \
 	-m 4G \
 	-cpu host \

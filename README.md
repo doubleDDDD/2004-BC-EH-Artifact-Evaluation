@@ -1,5 +1,200 @@
 # 2004-BC-EH-Artifact-Evaluation
 
+BC-EH is implemented on top of Linux v6.18
+(base commit: 7d0a66e4bb9081d75c82ec4957c50034cb0ea449).
+
+The AE-relevant kernel changes are concentrated in the SCSI mid-layer, the
+`scsi_debug` virtual device, and the `iscsi_tcp` software initiator path.
+Hardware-specific `mpt3sas` and `megaraid_sas` changes are not considered in
+this AE artifact path because they require specific SAS HBA/RAID controllers.
+
+Compared with the Linux v6.18 base commit, the AE-relevant modified source files
+are:
+
+SCSI error-handling core and shared SCSI infrastructure:
+
+- `drivers/scsi/Kconfig`
+  Adds `CONFIG_SCSI_BC_EH_LOG`, a build-time switch for verbose BC-EH logs.
+  This keeps experiment tracing available while allowing logging to be compiled
+  out for low-interference performance runs.
+
+- `drivers/scsi/hosts.c`
+  Initializes BC-EH per-host lists, mode state, and workqueues for checkpoint,
+  reset, and debug workers. It also flushes and destroys those workqueues during
+  host teardown.
+
+- `drivers/scsi/scsi_error.c`
+  Contains the main BC-EH recovery logic, including fault admission, boundary
+  closure, pending-fault handling, checkpointing, scoped reset, and scoped
+  offline decisions. When `eh_mode=sdev` is selected, this is the main BC-EH
+  orchestration path; it reuses existing LLDD recovery callbacks while changing
+  fault-boundary inference, scheduling, and recovery scope.
+
+- `drivers/scsi/scsi_lib.c`
+  Adds forward-progress accounting on command submission/completion and routes
+  failed commands into BC-EH when the host is in `sdev` mode. This provides
+  runtime forward-progress evidence used by BC-EH for fault-boundary inference.
+
+- `drivers/scsi/scsi_logging.h`
+  Adds BC-EH logging macros guarded by `CONFIG_SCSI_BC_EH_LOG`. The purpose is
+  to make experiment logs explicit without forcing log overhead into all runs.
+
+- `drivers/scsi/scsi_priv.h`
+  Declares BC-EH internal entry points, worker functions, and forward-progress
+  constants shared across the SCSI core. These declarations connect the
+  completion path, sysfs mode control, scan-time initialization, and EH workers.
+
+- `drivers/scsi/scsi_scan.c`
+  Builds the explicit `host -> channel -> target -> device` topology used by
+  BC-EH and initializes per-device EH state. This lets BC-EH reason about fault
+  boundaries below the host level.
+
+- `drivers/scsi/scsi_sysfs.c`
+  Adds the host `eh_mode` sysfs attribute for switching between Linux-EH
+  `host` mode and BC-EH `sdev` mode. It also cancels outstanding BC-EH state
+  when a SCSI device is removed.
+
+- `include/scsi/scsi_cmnd.h`
+  Adds a command submitter tag for commands issued by the new SCSI error
+  handler. This allows validation commands, such as EH-issued TURs, to be
+  distinguished from normal I/O.
+
+- `include/scsi/scsi_device.h`
+  Adds BC-EH state enums, per-device and per-target recovery metadata, the
+  `scsi_channel` topology object, and forward-progress estimator state. These
+  fields hold the persistent state needed for localized recovery.
+
+- `include/scsi/scsi_eh.h`
+  Adds the checkpoint benchmark configuration/result structures and exported
+  runner prototype. This supports the synthetic checkpoint scanning benchmark
+  used with `scsi_debug`.
+
+- `include/scsi/scsi_host.h`
+  Adds the BC-EH host mode, work-sequence state, per-host BC-EH queues, the
+  LLDD offline-confirmation hook, and an optional forward-progress timeout
+  hint. These fields provide the host-level scheduler, coordination state, and
+  driver contract used by BC-EH.
+
+`scsi_debug` fault injection and synthetic validation support:
+
+- `drivers/scsi/scsi_debug.c`
+  Extends `scsi_debug` with configurable topology, reset-failure injection,
+  post-reset validation failure/timeout injection, and checkpoint benchmark
+  debugfs controls. This provides a deterministic software device for the
+  AE functional and synthetic experiments.
+
+`iscsi_tcp` experiment support:
+
+- `drivers/scsi/iscsi_tcp.c`
+  Registers an `iscsi_tcp` offline-handler hook in the SCSI host template so
+  the BC-EH core interface is present for this software initiator. In this AE
+  path the handler is only a minimal stub; the iSCSI experiments mainly rely on
+  the controlled fault-injection logic in `libiscsi.c`.
+
+- `drivers/scsi/libiscsi.c`
+  Adds iSCSI experiment controls such as `bc_iscsi_test_mode`,
+  `bc_iscsi_fault_active`, and `bc_iscsi_hold_tur`, plus completion-drop and
+  fake-reset behavior for P1/P5-style cases. This makes the iSCSI fault path
+  reproducible inside the Ubuntu guest without relying on uncontrolled external
+  target failures.
+
+
+
+裸金属免责，要考虑自己的必要启动设备
+
+# TODO list
+1. 明确镜像版本，是否需要重新统一内核版本
+2. 把 5 个镜像彻底准备利索，脚本的位置要调整好
+3. 思考镜像内部的git，是否要清理
+4. 镜像内部搞不好要删东西哦，但也不一定，也不是必须移除
+
+ssh -p 2201 zc@127.0.0.1   # kafka-1
+ssh -p 2202 zc@127.0.0.1   # kafka-2
+ssh -p 2203 zc@127.0.0.1   # kafka-3
+ssh -p 2204 zc@127.0.0.1   # kafka-client
+ssh -p 2210 zc@127.0.0.1   # iscsi-vm
+
+
+
+```bash
+doubled@super:~/workspace/githublinux/linux$ git log
+commit 907b8a9cda01436bdd35e0d8461bbbc1f718a713 (HEAD -> b618, origin/b618)
+Author: doubled <18374822143@163.com>
+Date:   Tue Jun 9 00:24:55 2026 +0800
+
+    update
+
+    Signed-off-by: doubled <18374822143@163.com>
+```
+
+### 第一件事我得先统一一下镜像
+make iscsi
+ssh -p 2210 zc@127.0.0.1
+```bash
+commit ec4a05fd3880745be9dfd13782827bd491ddf292 (HEAD -> b618, origin/b618)
+Author: doubled <18374822143@163.com>
+Date:   Mon Jun 8 22:45:32 2026 +0800
+
+    update
+
+    Signed-off-by: doubled <18374822143@163.com>
+
+Linux kafka-client 6.18.0-00087-gec4a05fd3880 #657 SMP PREEMPT_DYNAMIC Mon Jun  8 22:52:14 CST 2026 x86_64 x86_64 x86_64 GNU/Linux
+```
+make kafka1
+ssh -p 2201 zc@127.0.0.1
+```bash
+commit a8263b8d30fe5b888976ac371c20fd9d1f5856ba (HEAD -> b618, origin/b618)
+Author: Dongdong Hao <doubled@leap-io-kernel.com>
+Date:   Wed May 20 19:31:54 2026 +0800
+
+    update
+
+5.4.0-216-generic  6.18.0-00066-gbb7b31dc685a  6.18.0-00067-ga8263b8d30fe
+
+Linux kafka-1 6.18.0-00067-ga8263b8d30fe #643 SMP PREEMPT_DYNAMIC Wed May 20 19:34:37 CST 2026 x86_64 x86_64 x86_64 GNU/Linux
+```
+
+make kafka2
+ssh -p 2202 zc@127.0.0.1
+```bash
+commit a8263b8d30fe5b888976ac371c20fd9d1f5856ba (HEAD -> b618, origin/b618)
+Author: Dongdong Hao <doubled@leap-io-kernel.com>
+Date:   Wed May 20 19:31:54 2026 +0800
+
+    update
+
+Linux kafka-2 6.18.0-00067-ga8263b8d30fe #643 SMP PREEMPT_DYNAMIC Wed May 20 19:34:38 CST 2026 x86_64 x86_64 x86_64 GNU/Linux
+```
+
+make kafka3
+ssh -p 2203 zc@127.0.0.1
+```bash
+commit a8263b8d30fe5b888976ac371c20fd9d1f5856ba (HEAD -> b618, origin/b618)
+Author: Dongdong Hao <doubled@leap-io-kernel.com>
+Date:   Wed May 20 19:31:54 2026 +0800
+
+    update
+
+Linux kafka-3 6.18.0-00067-ga8263b8d30fe #643 SMP PREEMPT_DYNAMIC Wed May 20 19:34:40 CST 2026 x86_64 x86_64 x86_64 GNU/Linux
+```
+
+make kafka-client
+ssh -p 2204 zc@127.0.0.1
+```bash
+commit a8263b8d30fe5b888976ac371c20fd9d1f5856ba (HEAD -> b618, origin/b618)
+Author: Dongdong Hao <doubled@leap-io-kernel.com>
+Date:   Wed May 20 19:31:54 2026 +0800
+
+    update
+
+Linux kafka-client 6.18.0-00067-ga8263b8d30fe #643 SMP PREEMPT_DYNAMIC Wed May 20 19:34:37 CST 2026 x86_64 x86_64 x86_64 GNU/Linux
+```
+
+
+
+
+
 ```bash
                  BC-EH Artifact
                        │
@@ -16,6 +211,8 @@
 ```
 
 论文完整 evaluation 包含 mpt3sas / megaraid_sas 对应的真实 HBA/RAID 控制器和磁盘，而这些硬件环境无法提供给 AE evaluator，因此无法满足完整的 Reproduced 要求。
+
+
 
 本代码包以 `atclinux/` 为主目录，主要包含两部分内容：
 

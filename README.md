@@ -451,7 +451,7 @@ Prepare the host-side network and target, then start `iscsi-vm`:
 ```bash
 sudo -E bash bc_eh_test/LLDD/iscsi_tcp/net_ready.sh
 sudo -E bash bc_eh_test/LLDD/iscsi_tcp/create_host.sh
-make iscsi
+sudo make iscsi
 ssh -p 2210 root@127.0.0.1
 ```
 
@@ -461,6 +461,9 @@ host-side setup scripts.
 <br>
 
 ### Expected iSCSI Setup State
+
+The iSCSI target uses file-backed LUNs on the host; it does not require a
+physical disk or a hardware storage controller.
 
 After `net_ready.sh` and `create_host.sh` complete on the host, the host should
 have:
@@ -475,9 +478,6 @@ backstore type: targetcli fileio
 LUN 0:          /var/lib/bc-eh-iscsi/lun0.img, 4 GiB
 LUN 1:          /var/lib/bc-eh-iscsi/lun1.img, 4 GiB
 ```
-
-The iSCSI target uses file-backed LUNs on the host; it does not require a
-physical disk or a hardware storage controller.
 
 Useful host-side checks are:
 
@@ -540,6 +540,14 @@ is under:
 The directory contains `metadata`, `dmesg_follow.log`, `dmesg_after.log`,
 `fault_fio.stdout`, `healthy_fio.stdout`, and the `fio` bandwidth/IOPS logs
 used for the healthy-sibling throughput timeline.
+
+For Figure 13, use the healthy-sibling `fio` timeline from the P1 output
+directory: `healthy_fio.stdout` plus the generated `healthy_bw*.log` and
+`healthy_iops*.log` files. The `inject_epoch` field in `metadata` marks the
+fault-injection point used as `t = 0`. For Table 7's iSCSI entry, use the
+kernel recovery timeline from `dmesg_follow.log` or `dmesg_after.log` in the
+same P1 output directory to extract the fault-object recovery latency
+(`T_eh`).
 
 <br>
 

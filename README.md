@@ -639,6 +639,51 @@ sudo bash fault_injection/bc-eh/run_single_disk_offline_case.sh
 sudo bash fault_injection/bc-eh/run_single_disk_recoverable_stall_case.sh
 ```
 
+Kafka outputs are split across the client VM and the fault-injection broker
+VM. On `kafka-client`, the producer workload writes the throughput timeline
+and per-partition summaries to:
+
+```text
+bc_eh_test/scsi_debug/kafka_jbod/workload/output/
+```
+
+Important files include:
+
+```text
+jbod-hot.formal_pinned_partition_workload.stdout.timestamped.log
+jbod-hot.formal_pinned_partition_workload.report_time.csv
+jbod-hot.formal_pinned_partition_workload.worker_summary.csv
+jbod-hot.formal_pinned_partition_workload.meta.txt
+```
+
+On `kafka-1`, each fault-injection run writes one timestamped output
+directory under:
+
+```text
+bc_eh_test/scsi_debug/kafka_jbod/fault_injection/output/
+```
+
+The directory name has the form:
+
+```text
+<timestamp>.<single_disk_offline|single_disk_recoverable_stall>.<linux-eh|bc-eh>.<host|sdev>/
+```
+
+Important files include:
+
+```text
+run.meta.txt
+dmesg.txt
+pre_fault/
+inject_armed/ or fault_start/
+post_fault_settled/ or recovered_observed/
+broker_logs/
+```
+
+The Kafka panels are derived by combining the producer timeline from
+`kafka-client` with the fault-injection metadata, kernel log, Kafka topic
+snapshots, and broker logs collected on `kafka-1`.
+
 The detailed Kafka JBOD guide is
 `bc_eh_test/scsi_debug/kafka_jbod/README.md`.
 

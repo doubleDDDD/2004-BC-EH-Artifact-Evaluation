@@ -8,4 +8,5 @@ ubuntu20046_x86_64.img
 # Generated experiment outputs
 bc_eh_test/scsi_debug/**/fpl_raw_results.csv
 bc_eh_test/scsi_debug/**/checkpoint_raw_results.csv
+bc_eh_test/scsi_debug/**/checkpoint_summary.md
 bc_eh_test/scsi_debug/**/output/

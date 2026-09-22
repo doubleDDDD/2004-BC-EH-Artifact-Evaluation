@@ -1,5 +1,22 @@
 # 2004-BC-EH-Artifact-Evaluation
 
+```bash
+                 BC-EH Artifact
+                       │
+          Linux source + bc_eh_test
+                       │
+          ┌────────────┴────────────┐
+          │                         │
+       QEMU/VM                  Bare Metal
+          │                         │
+  scsi_debug / iscsi_tcp       BC-EH kernel
+  Kafka JBOD                   overhead tests
+          │                         │
+  EH behavior/latency          hot-path overhead
+```
+
+论文完整 evaluation 包含 mpt3sas / megaraid_sas 对应的真实 HBA/RAID 控制器和磁盘，而这些硬件环境无法提供给 AE evaluator，因此无法满足完整的 Reproduced 要求。
+
 本代码包以 `atclinux/` 为主目录，主要包含两部分内容：
 
 - `atclinux/`：基于 Linux 6.18.0 的内核代码目录，包含本人在块层 / SCSI / error handling 相关方向上的代码修改。

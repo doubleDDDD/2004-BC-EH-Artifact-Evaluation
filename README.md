@@ -113,8 +113,7 @@ ssh -p 2202 zc@127.0.0.1   # kafka-2
 ssh -p 2203 zc@127.0.0.1   # kafka-3
 ssh -p 2204 zc@127.0.0.1   # kafka-client
 ssh -p 2210 zc@127.0.0.1   # iscsi-vm
-
-
+ssh -p 2222 zc@127.0.0.1   # ubuntu-base
 
 ```bash
 doubled@super:~/workspace/githublinux/linux$ git log

@@ -97,7 +97,12 @@ bc_eh_cleanup_scsi_debug_env()
         pkill -9 -x fio >/dev/null 2>&1 || true
     fi
 
-    modprobe -r scsi_debug >/dev/null 2>&1 || true
+    if command -v udevadm >/dev/null 2>&1; then
+        udevadm settle >/dev/null 2>&1 || true
+    fi
+
+    sleep "${SDEBUG_PRE_UNLOAD_SETTLE_SECS:-5}"
+    bc_eh_unload_scsi_debug "${SDEBUG_UNLOAD_WAIT_SECS:-30}"
     bc_eh_wait_scsi_debug_unloaded "${SDEBUG_UNLOAD_WAIT_SECS:-30}"
     modprobe -r crc_t10dif >/dev/null 2>&1 || true
 }
@@ -273,6 +278,33 @@ bc_eh_wait_scsi_debug_unloaded()
 
     host_name="$(bc_eh_find_scsi_debug_host || true)"
     bc_eh_die "scsi_debug did not unload within ${SDEBUG_UNLOAD_WAIT_SECS:-30}s; remaining host=${host_name:-none}"
+}
+
+bc_eh_unload_scsi_debug()
+{
+    local timeout_secs="${1:-30}"
+    local rc
+    local host_name
+
+    while [ "${timeout_secs}" -gt 0 ]; do
+        host_name="$(bc_eh_find_scsi_debug_host || true)"
+        if [ -z "${host_name}" ] && ! grep -q '^scsi_debug ' /proc/modules 2>/dev/null; then
+            return 0
+        fi
+
+        bc_eh_log "modprobe -r scsi_debug${host_name:+ while ${host_name} is present}"
+        rc=0
+        modprobe -r scsi_debug >/dev/null 2>&1 || rc=$?
+        if [ "${rc}" -ne 0 ]; then
+            bc_eh_log "modprobe -r scsi_debug returned ${rc}; waiting for previous scsi_debug state to settle"
+        fi
+
+        sleep 1
+        timeout_secs=$((timeout_secs - 1))
+    done
+
+    host_name="$(bc_eh_find_scsi_debug_host || true)"
+    bc_eh_die "failed to remove scsi_debug within ${SDEBUG_UNLOAD_WAIT_SECS:-30}s; remaining host=${host_name:-none}"
 }
 
 bc_eh_set_host_eh_mode()

@@ -582,16 +582,39 @@ cd ~/2004-BC-EH-Artifact-Evaluation/bc_eh_test/scsi_debug/kafka_jbod
 sudo bash basic_validation/run_basic_validation.sh
 ```
 
-Then select one formal topic layout wrapper for the experiment round. Run one
-of the following on one broker VM, normally `kafka-1`:
+Then select exactly one formal topic layout wrapper for the experiment round.
+Run one of the following on one broker VM, normally `kafka-1`:
 
 ```bash
 cd ~/2004-BC-EH-Artifact-Evaluation/bc_eh_test/scsi_debug/kafka_jbod
 
+# Default layout sanity check.
 sudo bash formal_topic/default_layout/run_formal_topic_layout_check.sh
+
+# Fixed layout used by the paper's 10/6 and 16/6 Kafka cases.
 sudo bash formal_topic/fixed_6_16/run_fixed_6_16_layout.sh
+
+# Fixed layout used by the paper's 12/4 Kafka case.
 sudo bash formal_topic/leader_tilt_12_4/run_leader_tilt_12_4_layout.sh
 ```
+
+The Kafka figure in the paper contains six panels: three Kafka fault/layout
+cases, each run once with Linux EH and once with BC-EH. For each row below,
+start the pinned producer workload on `kafka-client`, then run the listed
+fault-injection entry on `kafka-1`.
+
+| Paper panel | Formal topic layout | Fault-injection entry on `kafka-1` |
+| --- | --- | --- |
+| `offline_10_6_fixed`, Linux EH | `formal_topic/fixed_6_16/run_fixed_6_16_layout.sh` | `fault_injection/linux-eh/run_single_disk_offline_case.sh` |
+| `offline_10_6_fixed`, BC-EH | `formal_topic/fixed_6_16/run_fixed_6_16_layout.sh` | `fault_injection/bc-eh/run_single_disk_offline_case.sh` |
+| `offline_12_4_fixed`, Linux EH | `formal_topic/leader_tilt_12_4/run_leader_tilt_12_4_layout.sh` | `fault_injection/linux-eh/run_single_disk_offline_case.sh` |
+| `offline_12_4_fixed`, BC-EH | `formal_topic/leader_tilt_12_4/run_leader_tilt_12_4_layout.sh` | `fault_injection/bc-eh/run_single_disk_offline_case.sh` |
+| `recoverable_16_6_fixed`, Linux EH | `formal_topic/fixed_6_16/run_fixed_6_16_layout.sh` | `fault_injection/linux-eh/run_single_disk_recoverable_stall_case.sh` |
+| `recoverable_16_6_fixed`, BC-EH | `formal_topic/fixed_6_16/run_fixed_6_16_layout.sh` | `fault_injection/bc-eh/run_single_disk_recoverable_stall_case.sh` |
+
+The `default_layout` wrapper is useful for a default-layout sanity check, but
+the paper's six fixed-layout Kafka panels use `fixed_6_16` and
+`leader_tilt_12_4`.
 
 Then use the client VM for the producer workload:
 

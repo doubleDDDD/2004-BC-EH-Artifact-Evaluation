@@ -98,6 +98,7 @@ bc_eh_cleanup_scsi_debug_env()
     fi
 
     modprobe -r scsi_debug >/dev/null 2>&1 || true
+    bc_eh_wait_scsi_debug_unloaded "${SDEBUG_UNLOAD_WAIT_SECS:-30}"
     modprobe -r crc_t10dif >/dev/null 2>&1 || true
 }
 
@@ -253,6 +254,25 @@ bc_eh_wait_scsi_debug_host()
     done
 
     return 1
+}
+
+bc_eh_wait_scsi_debug_unloaded()
+{
+    local timeout_secs="${1:-30}"
+    local host_name
+
+    while [ "${timeout_secs}" -gt 0 ]; do
+        host_name="$(bc_eh_find_scsi_debug_host || true)"
+        if [ -z "${host_name}" ] && ! grep -q '^scsi_debug ' /proc/modules 2>/dev/null; then
+            return 0
+        fi
+
+        sleep 1
+        timeout_secs=$((timeout_secs - 1))
+    done
+
+    host_name="$(bc_eh_find_scsi_debug_host || true)"
+    bc_eh_die "scsi_debug did not unload within ${SDEBUG_UNLOAD_WAIT_SECS:-30}s; remaining host=${host_name:-none}"
 }
 
 bc_eh_set_host_eh_mode()

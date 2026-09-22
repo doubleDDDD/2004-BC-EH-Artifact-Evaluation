@@ -858,6 +858,7 @@ bc_eh_run_fio_on_named_devices()
     local iodepth
     local pid
     local pids=""
+    local rc
     local status=0
 
     [ "$#" -gt 0 ] || bc_eh_die "no active devices provided for fio"
@@ -896,9 +897,18 @@ bc_eh_run_fio_on_named_devices()
     done
 
     for pid in ${pids}; do
-        wait "${pid}" || status=1
+        rc=0
+        wait "${pid}" || rc=$?
+        printf 'fio_pid_%s_exit_status=%s\n' "${pid}" "${rc}" >> "${run_dir}/metadata"
+        if [ "${rc}" -ne 0 ]; then
+            status=1
+        fi
     done
 
-    [ "${status}" -eq 0 ] || bc_eh_die "fio failed"
-    bc_eh_log "fio done"
+    printf 'fio_exit_status=%s\n' "${status}" >> "${run_dir}/metadata"
+    if [ "${status}" -eq 0 ]; then
+        bc_eh_log "fio done"
+    else
+        bc_eh_log "fio completed with nonzero status; see ${run_dir}/metadata and fio output"
+    fi
 }

@@ -443,14 +443,25 @@ sudo bash setup_kafka_jbod_baseline.sh
 Repeat the same setup on `kafka-2` and `kafka-3` using ports `2202` and
 `2203`.
 
-After the brokers are running, check the Kafka topic layout on one broker VM,
-for example `kafka-1`:
+After all three broker setup scripts finish, run the basic Kafka cluster
+validation on one broker VM, for example `kafka-1`:
 
 ```bash
 ssh -p 2201 root@127.0.0.1
 cd ~/2004-BC-EH-Artifact-Evaluation/bc_eh_test/scsi_debug/kafka_jbod
 
-bash formal_topic/default_layout/run_formal_topic_layout_check.sh
+sudo bash basic_validation/run_basic_validation.sh
+```
+
+Then select one formal topic layout wrapper for the experiment round. Run one
+of the following on one broker VM, normally `kafka-1`:
+
+```bash
+cd ~/2004-BC-EH-Artifact-Evaluation/bc_eh_test/scsi_debug/kafka_jbod
+
+sudo bash formal_topic/default_layout/run_formal_topic_layout_check.sh
+sudo bash formal_topic/fixed_6_16/run_fixed_6_16_layout.sh
+sudo bash formal_topic/leader_tilt_12_4/run_leader_tilt_12_4_layout.sh
 ```
 
 Then use the client VM for the producer workload:
@@ -459,14 +470,21 @@ Then use the client VM for the producer workload:
 ssh -p 2204 root@127.0.0.1
 cd ~/2004-BC-EH-Artifact-Evaluation/bc_eh_test/scsi_debug/kafka_jbod
 
-bash workload/run_formal_pinned_partition_workload.sh
+sudo bash workload/run_formal_pinned_partition_workload.sh
 ```
 
-Fault-injection scripts are under:
+Run fault injection on `kafka-1`. Use the Linux EH entries for the Linux
+baseline and the BC-EH entries for the BC-EH run:
 
-```text
-bc_eh_test/scsi_debug/kafka_jbod/fault_injection/linux-eh/
-bc_eh_test/scsi_debug/kafka_jbod/fault_injection/bc-eh/
+```bash
+ssh -p 2201 root@127.0.0.1
+cd ~/2004-BC-EH-Artifact-Evaluation/bc_eh_test/scsi_debug/kafka_jbod
+
+sudo bash fault_injection/linux-eh/run_single_disk_offline_case.sh
+sudo bash fault_injection/linux-eh/run_single_disk_recoverable_stall_case.sh
+
+sudo bash fault_injection/bc-eh/run_single_disk_offline_case.sh
+sudo bash fault_injection/bc-eh/run_single_disk_recoverable_stall_case.sh
 ```
 
 The detailed Kafka JBOD guide is

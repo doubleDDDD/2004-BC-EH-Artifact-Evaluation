@@ -493,7 +493,7 @@ static void scsi_target_reap_ref_put(struct scsi_target *starget)
 	kref_put(&starget->reap_ref, scsi_target_reap_ref_release);
 }
 
-/* 新增 schannel 数据结构 */
+/* Allocate or find the SCSI channel topology object. */
 static struct scsi_channel *scsi_try_allocate_channel(struct scsi_target *starget, int channel)
 {
 	struct Scsi_Host *shost = starget->host;
@@ -2148,4 +2148,3 @@ void scsi_forget_host(struct Scsi_Host *shost)
 	}
 	spin_unlock_irqrestore(shost->host_lock, flags);
 }
-

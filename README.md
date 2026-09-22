@@ -4,6 +4,7 @@
 3. 很多开关参数都说清楚
 3. 中文的清理
 4. 最后考虑 FPL 的 bug 要不要 fix
+5. 上传文件要md5
 
 # 2004-BC-EH-Artifact-Evaluation
 

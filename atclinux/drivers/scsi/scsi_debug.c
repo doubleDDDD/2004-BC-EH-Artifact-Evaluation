@@ -141,7 +141,7 @@ static struct scsi_host_template sdebug_driver_template_runtime;
 #define DEF_CDB_LEN 10
 #define DEF_JDELAY   1		/* if > 0 unit is a jiffy */
 #define DEF_DEV_SIZE_PRE_INIT   0
-#define DEF_DEV_SIZE_MB   128 // 模拟盘大小 128M
+#define DEF_DEV_SIZE_MB   128 /* default simulated disk size in MiB */
 #define DEF_ZBC_DEV_SIZE_MB   128
 #define DEF_DIF 0
 #define DEF_DIX 0
@@ -385,7 +385,7 @@ enum sdebug_validate_action {
 struct sdebug_validate_cfg {
 	u8 action;      /* SDEB_VAL_* */
 	int budget;     /* 0=disabled, >0 finite, <0 unlimited */
-	atomic_t armed; /* 已经被某级 reset arm，等待下次 EH TUR 消费 */
+	atomic_t armed; /* armed by a reset stage and consumed by the next EH TUR */
 };
 
 struct sdebug_err_inject {
@@ -9835,7 +9835,7 @@ static int scsi_debug_queuecommand(struct Scsi_Host *shost,
 				SCSI_BCEH_SCMD_LOG(scp,
 						"post-%s TUR timeout\n",
 						sdebug_reset_stage_name(vst));
-				return 0; /* 不完成，等 EH TUR 自己超时 */
+				return 0; /* leave the EH TUR pending until it times out */
 			}
 
 			if (vact == SDEB_VAL_FAIL) {

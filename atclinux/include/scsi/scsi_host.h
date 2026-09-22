@@ -582,13 +582,13 @@ struct Scsi_Host {
 	spinlock_t		*host_lock;
 
 	/****************************************************/
-	struct list_head schannels; /* host 下的所有 channel */
-	struct list_head eh_sdev; /* 所有异常的sdev */
-	struct list_head eh_starget; /* 所有异常的starget */
-	struct list_head eh_schannel; /* 所有异常的schannel */
-	struct workqueue_struct *eh_checkpoint; /* checkpoint的工作队列 */
-	struct workqueue_struct *eh_process; /* checkpoint的工作队列 */
-	struct workqueue_struct *eh_debug; /* debug的工作队列，没事就干跑，有事我就采样 */
+	struct list_head schannels; /* all channels under this host */
+	struct list_head eh_sdev; /* faulted sdev list */
+	struct list_head eh_starget; /* faulted starget list */
+	struct list_head eh_schannel; /* faulted channel list */
+	struct workqueue_struct *eh_checkpoint; /* checkpoint workqueue */
+	struct workqueue_struct *eh_process; /* recovery workqueue */
+	struct workqueue_struct *eh_debug; /* debug sampling workqueue */
 	atomic_t eh_shost_state;
 	enum post_fault_action pfaction;
 	unsigned int schannel_failed;
@@ -596,7 +596,7 @@ struct Scsi_Host {
 	struct scsi_eh_work_sequence *eh_work_sequence;
 	struct list_head eh_pending_fault_q;
 	struct mutex eh_seq_mutex;
-	enum scsi_eh_mode eh_mode; /* 方便测试用的 */
+	enum scsi_eh_mode eh_mode; /* EH mode selector */
 	/****************************************************/
 
 	struct mutex		scan_mutex;/* serialize scanning activity */

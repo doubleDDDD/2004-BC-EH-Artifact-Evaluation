@@ -67,14 +67,14 @@ enum scsi_scan_mode {
 /******************************************/
 /******************************************/
 enum scsi_eh_state {
-	EH_NORMAL = 0, /* 正常 IO 状态 */
-	EH_QUIESCE,    /* 已标记异常域，阻断新 IO，等待在途 IO 完成 */
-	EH_SCHEDULED,  /* EH 已决定要跑，work 已入队，但还没开始 */
-	EH_RUNNING,    /* EH 已启动（reset / abort / recovery） */
+	EH_NORMAL = 0, /* Normal I/O state */
+	EH_QUIESCE,    /* Fault domain marked; block new I/O and wait for in-flight I/O */
+	EH_SCHEDULED,  /* EH work has been queued but has not started */
+	EH_RUNNING,    /* EH is running reset, abort, or recovery */
 };
 
 enum sentity_state {
-    // 前三种 sdev 专用
+    /* The first three states are sdev-specific. */
     SENTITY_DEV_IDLE = 0,
     SENTITY_DEV_FAULT,
     SENTITY_DEV_RUNNING,
@@ -185,9 +185,9 @@ struct scsi_device {
 	bool reset_tur_wait_timeout_done;
 	unsigned int reset_tur_retry_count;
 	int reset_tur_state; /* cached final TUR state for group reset cleanup */
-	/* 下面2个字段用于不依赖真正超时的情况下，评估 sdev 是否健康 */
-	unsigned long last_submit_jiffies; /* 记录最近的一次提交 */
-	unsigned long last_complete_jiffies; /* 记录最近的一次完成 */
+	/* Track progress without relying only on real command timeouts. */
+	unsigned long last_submit_jiffies; /* most recent command submission */
+	unsigned long last_complete_jiffies; /* most recent command completion */
 	struct scsi_fp_estimator fp_est;
 	atomic_t fp_sample_cnt;
 	/**********************************************/
@@ -485,25 +485,24 @@ static inline struct scsi_target *scsi_target(struct scsi_device *sdev)
 	dev_printk(prefix, &(starget)->dev, fmt, ##a)
 
 
-	/* 新增数据结构 */
 struct scsi_channel {
 	struct Scsi_Host *host;
-	struct list_head targets; /* channel 下的所有 target */
+	struct list_head targets; /* all targets under this channel */
 	int channel; /* channel id */
 	struct list_head same_host_siblings;
 
-	struct list_head schannel_eh_siblings; /* 如果 channel GG，则会挂到 host 上 */
+	struct list_head schannel_eh_siblings; /* linked on the host EH list */
 	atomic_t eh_schannel_state;
 	spinlock_t eh_schannel_lock;
 
-	/* 仿照 sdev 的 busy */
+	/* Similar to sdev busy tracking. */
 	unsigned int starget_failed;
 	unsigned int total_stargets;
 
-	// reset失败后的动作
+	/* Action after reset failure. */
 	enum post_fault_action pfaction;
 
-	// 用于判断是否被加入过 eh list，升级的时候会判断为 true 才会执行 del 操作
+	/* Whether this channel has already been queued on an EH list. */
 	bool eh_queued;
 };
 

@@ -1,6 +1,3 @@
-# http://nickdesaulniers.github.io/blog/2018/10/24/booting-a-custom-linux-kernel-in-qemu-and-debugging-it-with-gdb/
-# https://wiki.archlinux.org/index.php/QEMU_(%E7%AE%80%E4%BD%93%E4%B8%AD%E6%96%87)
-
 # path
 DIR_CUR = $(shell pwd)
 KERNEL_ROOT = $(DIR_CUR)/../
@@ -78,7 +75,7 @@ KAFKA_JBOD_PARAMETER_1 := -name kafka-1 \
 	-machine q35,accel=kvm,kernel-irqchip=split \
 	-enable-kvm \
 	-smp 4,sockets=1,cores=4,threads=1 \
-	-drive file=../../kafka1-os.qcow2,format=qcow2,if=virtio \
+	-drive file=./kafka1-os.qcow2,format=qcow2,if=virtio \
 	-netdev user,id=mgmt1,hostfwd=tcp:127.0.0.1:2201-:22 \
 	-device virtio-net-pci,netdev=mgmt1,mac=52:54:00:10:10:11 \
 	-netdev socket,id=cluster1,mcast=239.192.168.1:1102 \
@@ -93,7 +90,7 @@ KAFKA_JBOD_PARAMETER_2 := -name kafka-2 \
 	-machine q35,accel=kvm,kernel-irqchip=split \
 	-enable-kvm \
 	-smp 4,sockets=1,cores=4,threads=1 \
-	-drive file=../../kafka2-os.qcow2,format=qcow2,if=virtio \
+	-drive file=./kafka2-os.qcow2,format=qcow2,if=virtio \
 	-netdev user,id=mgmt2,hostfwd=tcp:127.0.0.1:2202-:22 \
 	-device virtio-net-pci,netdev=mgmt2,mac=52:54:00:10:10:12 \
 	-netdev socket,id=cluster2,mcast=239.192.168.1:1102 \
@@ -108,7 +105,7 @@ KAFKA_JBOD_PARAMETER_3 := -name kafka-3 \
 	-machine q35,accel=kvm,kernel-irqchip=split \
 	-enable-kvm \
 	-smp 4,sockets=1,cores=4,threads=1 \
-	-drive file=../../kafka3-os.qcow2,format=qcow2,if=virtio \
+	-drive file=./kafka3-os.qcow2,format=qcow2,if=virtio \
 	-netdev user,id=mgmt3,hostfwd=tcp:127.0.0.1:2203-:22 \
 	-device virtio-net-pci,netdev=mgmt3,mac=52:54:00:10:10:13 \
 	-netdev socket,id=cluster3,mcast=239.192.168.1:1102 \
@@ -123,7 +120,7 @@ KAFKA_CLIENT_PARAMETER := -name kafka-client \
 	-machine q35,accel=kvm,kernel-irqchip=split \
 	-enable-kvm \
 	-smp 2,sockets=1,cores=2,threads=1 \
-	-drive file=../../kafka-client-os.qcow2,format=qcow2,if=virtio \
+	-drive file=./kafka-client-os.qcow2,format=qcow2,if=virtio \
 	-netdev user,id=mgmt4,hostfwd=tcp:127.0.0.1:2204-:22 \
 	-device virtio-net-pci,netdev=mgmt4,mac=52:54:00:10:10:21 \
 	-netdev socket,id=cluster4,mcast=239.192.168.1:1102 \
@@ -147,7 +144,7 @@ ISCSI_VM_PARAMETER := -name iscsi-vm \
 	-machine q35,accel=kvm,kernel-irqchip=split \
 	-enable-kvm \
 	-smp 4,sockets=1,cores=4,threads=1 \
-	-drive file=../../iscsi.qcow2,format=qcow2,if=virtio \
+	-drive file=./iscsi.qcow2,format=qcow2,if=virtio \
 	-netdev user,id=mgmt,hostfwd=tcp:127.0.0.1:2210-:22 \
 	-device virtio-net-pci,netdev=mgmt,mac=52:54:00:10:30:01 \
 	-netdev tap,id=iscsi0,ifname=tap-iscsi0,script=no,downscript=no \
@@ -155,38 +152,41 @@ ISCSI_VM_PARAMETER := -name iscsi-vm \
 	-display none \
 	-daemonize
 
-MEGA_VM_PARAMETER := -name mega-vm \
-	-m 4G \
-	-cpu host \
-	-machine q35,accel=kvm,kernel-irqchip=split \
-	-enable-kvm \
-	-smp 4,sockets=1,cores=4,threads=1 \
-	-drive file=../../iscsi.qcow2,format=qcow2,if=virtio \
-	-netdev user,id=mgmt,hostfwd=tcp:127.0.0.1:2210-:22 \
-	-device virtio-net-pci,netdev=mgmt,mac=52:54:00:10:30:01 \
-	-netdev tap,id=iscsi0,ifname=tap-iscsi0,script=no,downscript=no \
-	-device virtio-net-pci,netdev=iscsi0,mac=52:54:00:20:30:01 \
-	-device intel-iommu,intremap=on,caching-mode=on \
-	-device vfio-pci,host=$(HBA_HOST) \
-	-display none \
-	-daemonize
+# The following passthrough VM configurations require specific local HBA/RAID hardware,
+# so they are kept commented out by default.
 
-MPT3SAS_VM_PARAMETER := -name mpt3sas-vm \
-	-m 4G \
-	-cpu host \
-	-machine q35,accel=kvm,kernel-irqchip=split \
-	-enable-kvm \
-	-smp 4,sockets=1,cores=4,threads=1 \
-	-drive file=../../iscsi.qcow2,format=qcow2,if=virtio \
-	-netdev user,id=mgmt,hostfwd=tcp:127.0.0.1:2210-:22 \
-	-device virtio-net-pci,netdev=mgmt,mac=52:54:00:10:30:01 \
-	-netdev tap,id=iscsi0,ifname=tap-iscsi0,script=no,downscript=no \
-	-device virtio-net-pci,netdev=iscsi0,mac=52:54:00:20:30:01 \
-	-device intel-iommu,intremap=on,caching-mode=on \
-	-device vfio-pci,host=$(MPT3SAS_HOST),rombar=0 \
-	-boot order=c,strict=on \
-	-display none \
-	-daemonize
+# MEGA_VM_PARAMETER := -name mega-vm \
+# 	-m 4G \
+# 	-cpu host \
+# 	-machine q35,accel=kvm,kernel-irqchip=split \
+# 	-enable-kvm \
+# 	-smp 4,sockets=1,cores=4,threads=1 \
+# 	-drive file=../../iscsi.qcow2,format=qcow2,if=virtio \
+# 	-netdev user,id=mgmt,hostfwd=tcp:127.0.0.1:2210-:22 \
+# 	-device virtio-net-pci,netdev=mgmt,mac=52:54:00:10:30:01 \
+# 	-netdev tap,id=iscsi0,ifname=tap-iscsi0,script=no,downscript=no \
+# 	-device virtio-net-pci,netdev=iscsi0,mac=52:54:00:20:30:01 \
+# 	-device intel-iommu,intremap=on,caching-mode=on \
+# 	-device vfio-pci,host=$(HBA_HOST) \
+# 	-display none \
+# 	-daemonize
+
+# MPT3SAS_VM_PARAMETER := -name mpt3sas-vm \
+# 	-m 4G \
+# 	-cpu host \
+# 	-machine q35,accel=kvm,kernel-irqchip=split \
+# 	-enable-kvm \
+# 	-smp 4,sockets=1,cores=4,threads=1 \
+# 	-drive file=../../iscsi.qcow2,format=qcow2,if=virtio \
+# 	-netdev user,id=mgmt,hostfwd=tcp:127.0.0.1:2210-:22 \
+# 	-device virtio-net-pci,netdev=mgmt,mac=52:54:00:10:30:01 \
+# 	-netdev tap,id=iscsi0,ifname=tap-iscsi0,script=no,downscript=no \
+# 	-device virtio-net-pci,netdev=iscsi0,mac=52:54:00:20:30:01 \
+# 	-device intel-iommu,intremap=on,caching-mode=on \
+# 	-device vfio-pci,host=$(MPT3SAS_HOST),rombar=0 \
+# 	-boot order=c,strict=on \
+# 	-display none \
+# 	-daemonize
 
 .PHONY:help
 help:

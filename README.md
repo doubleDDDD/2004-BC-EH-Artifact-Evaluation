@@ -111,7 +111,7 @@ The `bc_eh_test/scsi_debug/` directory contains:
 bc_eh_test/scsi_debug/
 ├── scsi_debug_common.sh
 ├── scsi_debug_case.sh
-├── run_all.sh
+├── run_scsi_debug_ae_suite.sh
 ├── funcVer/
 ├── basictopo/
 │   ├── linux-eh/
@@ -128,8 +128,12 @@ bc_eh_test/scsi_debug/
 └── kafka_jbod/
 ```
 
-- `scsi_debug_common.sh`, `scsi_debug_case.sh`, and `run_all.sh`
-  Shared helpers and the top-level runner for `scsi_debug` experiments.
+- `scsi_debug_common.sh`, `scsi_debug_case.sh`, and
+  `run_scsi_debug_ae_suite.sh`
+  Shared helpers and the top-level runner for the `scsi_debug` AE suite. The
+  top-level runner includes `funcVer/`, `basictopo/`, `complextopo/`,
+  `sequence_cases/`, `checkpoint_perf/`, and `fpl_perf_quick/`. It does not
+  include `fpl_perf_real/` or `kafka_jbod/`.
 
 - `funcVer/`
   Functional validation cases for the BC-EH reset-handler combinations,
@@ -307,6 +311,18 @@ name.
 
 Run these commands inside a prepared Ubuntu guest after entering the cloned
 artifact repository.
+
+The combined scsi_debug AE suite runs the functional/recovery cases, the
+checkpoint traversal microbenchmark, and the short FPL hot-path matrix:
+
+```bash
+cd ~/2004-BC-EH-Artifact-Evaluation/bc_eh_test/scsi_debug
+sudo sh run_scsi_debug_ae_suite.sh
+```
+
+This combined runner includes `funcVer/`, `basictopo/`, `complextopo/`,
+`sequence_cases/`, `checkpoint_perf/`, and `fpl_perf_quick/`. It does not run
+the full `fpl_perf_real/` matrix or the Kafka JBOD experiment.
 
 <br>
 

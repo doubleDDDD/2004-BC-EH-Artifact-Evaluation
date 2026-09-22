@@ -1,9 +1,11 @@
-# Kafka JBOD scsi_debug setup guide
+# Kafka JBOD scsi_debug experiment guide
 
 ## Goal
-- This directory contains the guest-side setup scripts for the Kafka JBOD experiment.
+- This directory contains the guest-side setup, validation, workload, and
+  fault-injection scripts for the Kafka JBOD experiment.
 - Kafka is installed at `/root/kafka_2.13-4.2.0`.
-- Running `setup_kafka_jbod_baseline.sh` inside each of `kafka-1`, `kafka-2`, and `kafka-3` should:
+- Running `setup_kafka_jbod_baseline.sh` once inside each broker VM
+  (`kafka-1`, `kafka-2`, and `kafka-3`) should:
   - reset the previous Kafka runtime state;
   - regenerate `kafka-1.properties/kafka-2.properties/kafka-3.properties`;
   - create three independent `scsi_debug` data disks;
@@ -11,31 +13,36 @@
   - create Kafka log directories at `/data/kafka-1/kafka-logs`, `/data/kafka-2/kafka-logs`, `/data/kafka-3/kafka-logs`;
   - keep `metadata.log.dir` on the system disk;
   - format the local broker storage and start the local Kafka process;
-  - make the setup repeatable across the three VMs.
+  - make the setup repeatable across the three broker VMs.
 
 <br>
 
-## Current 3-VM baseline
-- The current setup uses two NICs per VM.
+## Current 4-VM setup
+- The current setup uses three Kafka broker VMs and one Kafka client VM.
+- The three broker VMs use `scsi_debug`-backed Kafka data disks.
+- The client VM is used for producer workload generation.
+- Each VM uses two NICs.
 - `enp0s2` is the management NIC:
   - backed by QEMU `-netdev user`
   - guest side uses `dhcp4: true`
-  - host side SSH forwarding is `2201/2202/2203 -> guest:22`
+  - host side SSH forwarding is `2201/2202/2203/2204 -> guest:22`
 - `enp0s3` is the Kafka cluster NIC:
   - backed by QEMU `-netdev socket,mcast=239.192.168.1:1102`
   - guest side uses static addressing
-  - Kafka `advertised.listeners` and `controller.quorum.voters` should bind to this NIC, not `enp0s2`
+  - Kafka `advertised.listeners` and `controller.quorum.voters` bind to this NIC, not `enp0s2`
 
 | VM | OS overlay | host SSH port | `enp0s2` MAC | `enp0s3` MAC | `enp0s3` IP |
 | --- | --- | --- | --- | --- | --- |
-| `kafka-1` | `../../kafka1-os.qcow2` | `2201` | `52:54:00:10:10:11` | `52:54:00:20:20:11` | `10.20.0.11/24` |
-| `kafka-2` | `../../kafka2-os.qcow2` | `2202` | `52:54:00:10:10:12` | `52:54:00:20:20:12` | `10.20.0.12/24` |
-| `kafka-3` | `../../kafka3-os.qcow2` | `2203` | `52:54:00:10:10:13` | `52:54:00:20:20:13` | `10.20.0.13/24` |
+| `kafka-1` | `./kafka1-os.qcow2` | `2201` | `52:54:00:10:10:11` | `52:54:00:20:20:11` | `10.20.0.11/24` |
+| `kafka-2` | `./kafka2-os.qcow2` | `2202` | `52:54:00:10:10:12` | `52:54:00:20:20:12` | `10.20.0.12/24` |
+| `kafka-3` | `./kafka3-os.qcow2` | `2203` | `52:54:00:10:10:13` | `52:54:00:20:20:13` | `10.20.0.13/24` |
+| `kafka-client` | `./kafka-client-os.qcow2` | `2204` | `52:54:00:10:10:21` | `52:54:00:20:20:21` | `10.20.0.21/24` |
 
 Notes:
 - `enp0s2` is only for host management and outbound access from the guest.
 - Under QEMU user networking, each guest may see the same NAT-side address such as `10.0.2.15`; this is normal and is not used for broker identity.
 - The stable broker identity comes from `enp0s3` plus the forwarded SSH port.
+- The OS overlays are expected at the artifact root directory, next to the top-level `Makefile`.
 
 ### Netplan inside each guest
 `kafka-1`:
@@ -77,6 +84,19 @@ network:
         - 10.20.0.13/24
 ```
 
+`kafka-client`:
+
+```yaml
+network:
+  version: 2
+  ethernets:
+    enp0s2:
+      dhcp4: true
+    enp0s3:
+      addresses:
+        - 10.20.0.21/24
+```
+
 After editing netplan:
 
 ```bash
@@ -91,70 +111,28 @@ Host-side SSH entry points:
 ssh -p 2201 root@127.0.0.1
 ssh -p 2202 root@127.0.0.1
 ssh -p 2203 root@127.0.0.1
+ssh -p 2204 root@127.0.0.1
 ```
 
-### QEMU startup commands
-These commands are synchronized with `/home/doubled/bc_eh_linux/linux/bc_eh_test/Makefile`.
-
-`kafka-1`:
+### QEMU startup
+Start the Kafka VM set from the artifact root directory:
 
 ```bash
-qemu-system-x86_64 \
-  -name kafka-1 \
-  -m 8G \
-  -cpu host \
-  -machine q35,accel=kvm,kernel-irqchip=split \
-  -enable-kvm \
-  -smp 4,sockets=1,cores=4,threads=1 \
-  -drive file=../../kafka1-os.qcow2,format=qcow2,if=virtio \
-  -netdev user,id=mgmt1,hostfwd=tcp:127.0.0.1:2201-:22 \
-  -device virtio-net-pci,netdev=mgmt1,mac=52:54:00:10:10:11 \
-  -netdev socket,id=cluster1,mcast=239.192.168.1:1102 \
-  -device virtio-net-pci,netdev=cluster1,mac=52:54:00:20:20:11 \
-  -display none \
-  -daemonize
+cd 2004-BC-EH-Artifact-Evaluation
+make kafka
 ```
 
-`kafka-2`:
+The top-level `Makefile` also provides individual targets:
 
 ```bash
-qemu-system-x86_64 \
-  -name kafka-2 \
-  -m 8G \
-  -cpu host \
-  -machine q35,accel=kvm,kernel-irqchip=split \
-  -enable-kvm \
-  -smp 4,sockets=1,cores=4,threads=1 \
-  -drive file=../../kafka2-os.qcow2,format=qcow2,if=virtio \
-  -netdev user,id=mgmt2,hostfwd=tcp:127.0.0.1:2202-:22 \
-  -device virtio-net-pci,netdev=mgmt2,mac=52:54:00:10:10:12 \
-  -netdev socket,id=cluster2,mcast=239.192.168.1:1102 \
-  -device virtio-net-pci,netdev=cluster2,mac=52:54:00:20:20:12 \
-  -display none \
-  -daemonize
-```
-
-`kafka-3`:
-
-```bash
-qemu-system-x86_64 \
-  -name kafka-3 \
-  -m 8G \
-  -cpu host \
-  -machine q35,accel=kvm,kernel-irqchip=split \
-  -enable-kvm \
-  -smp 4,sockets=1,cores=4,threads=1 \
-  -drive file=../../kafka3-os.qcow2,format=qcow2,if=virtio \
-  -netdev user,id=mgmt3,hostfwd=tcp:127.0.0.1:2203-:22 \
-  -device virtio-net-pci,netdev=mgmt3,mac=52:54:00:10:10:13 \
-  -netdev socket,id=cluster3,mcast=239.192.168.1:1102 \
-  -device virtio-net-pci,netdev=cluster3,mac=52:54:00:20:20:13 \
-  -display none \
-  -daemonize
+make kafka1
+make kafka2
+make kafka3
+make kafka-client
 ```
 
 ## Baseline invariants
-- After the scripts finish, each guest should expose exactly three Kafka data disks under one `shost`:
+- After the setup scripts finish, each broker guest should expose exactly three Kafka data disks under one `shost`:
   - disk A -> `/data/kafka-1`
   - disk B -> `/data/kafka-2`
   - disk C -> `/data/kafka-3`
@@ -181,9 +159,10 @@ qemu-system-x86_64 \
 <br>
 
 ## Recommended scripted workflow
-The current initialization chain is implemented per VM.
+The broker initialization chain is implemented per broker VM.
 - Run it once inside `kafka-1`, once inside `kafka-2`, and once inside `kafka-3`.
-- Each VM uses the same scripts, and the local broker identity is inferred from `enp0s3`.
+- Each broker VM uses the same scripts, and the local broker identity is inferred from `enp0s3`.
+- Run producer workload scripts from `kafka-client`.
 
 ### `01_generate_kafka_properties.sh`
 Purpose:
@@ -247,7 +226,7 @@ bash 03_start_local_kafka_broker.sh
 #### `10_load_kafka_jbod_topology.sh`
 Purpose:
 - unload any stale `scsi_debug` instance;
-- load `scsi_debug.ko` with the Kafka JBOD baseline topology;
+- load the `scsi_debug` module with the Kafka JBOD baseline topology;
 - wait until exactly three `scsi_debug` data disks appear.
 
 Expected topology:
@@ -257,7 +236,7 @@ Expected topology:
 - `max_luns=1`
 - `host_max_queue=192`
 - `max_queue=192`
-- `dev_size_mb=1024`
+- `dev_size_mb=4096`
 
 Recommended load command:
 
@@ -270,7 +249,7 @@ modprobe scsi_debug \
     max_luns=1 \
     host_max_queue=192 \
     max_queue=192 \
-    dev_size_mb=1024 \
+    dev_size_mb=4096 \
     sector_size=512 \
     dsense=1 \
     delay=1
@@ -349,7 +328,8 @@ Recommended actions:
 umount /data/kafka-1 || true
 umount /data/kafka-2 || true
 umount /data/kafka-3 || true
-rmmod scsi_debug || true
+modprobe -r scsi_debug || true
+modprobe -r crc_t10dif || true
 ```
 
 ## Wrapper scripts
@@ -375,7 +355,7 @@ bash setup_kafka_jbod_baseline.sh
 ```
 
 Notes:
-- run it once per VM inside `kafka-1`, `kafka-2`, and `kafka-3`;
+- run it once per broker VM inside `kafka-1`, `kafka-2`, and `kafka-3`;
 - after all three VMs finish setup, the cluster should be ready for `basic_validation/run_basic_validation.sh`.
 
 ### `cleanup_kafka_jbod_baseline.sh`
@@ -394,7 +374,7 @@ bash cleanup_kafka_jbod_baseline.sh
 
 Notes:
 - stop on first failure;
-- run it once per VM to stop the local broker and tear down the local topology;
+- run it once per broker VM to stop the local broker and tear down the local topology;
 - after cleanup, no Kafka listener should remain on `9092/9093`, and `/data/kafka-1..3` should be unmounted.
 
 ### `cleanup_kafka_jbod_experiment_outputs.sh`
@@ -443,6 +423,7 @@ bash basic_validation/run_basic_validation.sh
 Notes:
 - run it after all three VMs finish `setup_kafka_jbod_baseline.sh`;
 - running it on one VM is enough for the shared cluster check, but running it on all three is also safe because the script creates topic `smoke` with `--if-not-exists`.
+- run it on a broker VM by default; on `kafka-client`, pass `BOOTSTRAP_SERVER=10.20.0.11:9092`.
 
 ### `formal_topic/default_layout/create_formal_jbod_topic.sh`
 Purpose:
@@ -493,7 +474,7 @@ Notes:
 
 ### `formal_topic/default_layout/run_formal_topic_layout_check.sh`
 Purpose:
-- provide the one-shot entry for the chapter-9 formal topic step.
+- provide the one-shot entry for the formal topic layout step.
 
 Behavior:
   1. create or reuse the formal topic
@@ -511,11 +492,12 @@ Notes:
 - unlike the per-VM setup scripts, this cluster-level check only needs to run on one VM;
 - prefer running it on `kafka-1` so the exported outputs stay centralized on one guest;
 - running it on all three VMs does not add coverage, because the script already queries brokers `1,2,3` in one pass and would only generate duplicate outputs on each guest.
+- on `kafka-client`, pass `BOOTSTRAP_SERVER=10.20.0.11:9092`.
 
 ### `workload/run_formal_producer_baseline.sh`
 Purpose:
-- provide the chapter-10 formal producer baseline with fixed topic, record size, throughput, and run window;
-- keep workload startup separate from chapter-11 fault injection.
+- provide the formal producer baseline with fixed topic, record size, throughput, and run window;
+- keep workload startup separate from fault injection.
 
 Behavior:
   1. resolve a bootstrap server and wait until it is reachable
@@ -526,8 +508,21 @@ Behavior:
 Notes:
 - this script is intentionally only the workload side of the experiment;
 - fault injection should remain a separate script/control path in the next experiment stage;
-- the current default baseline is conservative: `4 KiB` records, `300` records/s, and `1200s` total run time;
+- the current default baseline is `4 KiB` records, `600` records/s, and `1200s` total run time;
 - override parameters with environment variables such as `FORMAL_WORKLOAD_THROUGHPUT=...` or `FORMAL_WORKLOAD_RUN_SECS=...` when tuning the platform.
+
+### `workload/run_formal_pinned_partition_workload.sh`
+Purpose:
+- provide the formal fixed-partition producer workload used for the Kafka
+  healthy-sibling throughput timeline.
+- save timestamped producer output and per-partition summaries under
+  `workload/output/`.
+
+Expected usage on `kafka-client`:
+
+```bash
+bash workload/run_formal_pinned_partition_workload.sh
+```
 
 <br>
 
@@ -581,7 +576,7 @@ This is critical. If metadata is placed on the fault injection disk, the experim
 After this step succeeds, the Kafka experiment can safely move to the next stage:
 - configure Kafka broker `log.dirs=/data/kafka-1/kafka-logs,/data/kafka-2/kafka-logs,/data/kafka-3/kafka-logs`
 - create the `jbod-hot` topic
-- run producer baseline
+- run the producer workload from `kafka-client`
 - record `kafka-log-dirs.sh --describe`
 - inject fault into only one data disk, typically mount `/data/kafka-1`, corresponding Kafka `log.dir` `/data/kafka-1/kafka-logs`
 - compare Linux-EH vs BC-EH on:
@@ -589,7 +584,7 @@ After this step succeeds, the Kafka experiment can safely move to the next stage
   - healthy sibling `log.dirs`
   - ISR / leader migration / tail latency impact
 
-The chapter-11 fault stage is now split into a separate directory:
+The fault-injection stage is split into a separate directory:
 - `fault_injection/fault_injection_common.sh`
 - `fault_injection/single_disk_offline_case_impl.sh`
 - `fault_injection/single_disk_recoverable_stall_case_impl.sh`
@@ -633,6 +628,20 @@ The directory currently contains:
 - `formal_topic/default_layout/create_formal_jbod_topic.sh`
 - `formal_topic/default_layout/check_formal_jbod_layout.sh`
 - `formal_topic/default_layout/run_formal_topic_layout_check.sh`
+- `formal_topic/fixed_6_16/apply_fixed_6_16_layout.sh`
+- `formal_topic/fixed_6_16/check_fixed_6_16_layout.sh`
+- `formal_topic/fixed_6_16/fixed_6_16_common.sh`
+- `formal_topic/fixed_6_16/run_fixed_6_16_layout.sh`
+- `formal_topic/leader_tilt_12_4/apply_leader_tilt_12_4_layout.sh`
+- `formal_topic/leader_tilt_12_4/check_leader_tilt_12_4_layout.sh`
+- `formal_topic/leader_tilt_12_4/leader_tilt_12_4_common.sh`
+- `formal_topic/leader_tilt_12_4/run_leader_tilt_12_4_layout.sh`
+- `workload/FixedPartitionProducerWorkload.java`
+- `workload/PersistentProducerJmxSampler.java`
+- `workload/run_formal_pinned_partition_workload.sh`
+- `workload/run_formal_producer_baseline.sh`
+- `workload/summarize_pinned_partition_groups.py`
+- `workload/workload_common.sh`
 - `cleanup_kafka_jbod_experiment_outputs.sh`
 - `cleanup_kafka_jbod_baseline.sh`
 - `99_cleanup_kafka_jbod.sh`
@@ -642,11 +651,11 @@ The directory currently contains:
 
 ## Minimal success criteria
 The scripted step is considered successful only if all of the following hold:
-1. The guest sees exactly three Kafka data disks.
+1. Each broker guest sees exactly three Kafka data disks.
 2. The three disks are mounted at `/data/kafka-1..3`.
 3. Kafka log directories exist at `/data/kafka-1..3/kafka-logs`.
 4. The topology remains `1 host / 1 channel / 3 targets / 1 lun per target`.
 5. Kafka metadata stays on the system disk.
 6. `basic_validation/run_basic_validation.sh` succeeds after all three VMs finish setup.
 7. `formal_topic/default_layout/run_formal_topic_layout_check.sh` succeeds before the formal workload stage.
-8. The setup is repeatable across `kafka-1`, `kafka-2`, and `kafka-3`.
+8. The broker setup is repeatable across `kafka-1`, `kafka-2`, and `kafka-3`.

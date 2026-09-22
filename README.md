@@ -9,10 +9,10 @@ BC-EH Artifact
 │   ├── bc_eh_test/     test, VM setup, and experiment scripts
 │   ├── Makefile        host-side QEMU experiment launcher
 │   └── README.md
-└── Zenodo VM images
-    ├── ubuntu20046_x86_64.img   shared Ubuntu backing image
-    ├── iscsi.qcow2              iSCSI/scsi_debug overlay
-    └── kafka*.qcow2             Kafka broker/client overlays
+└── External VM image archive
+    ├── ubuntu20046_x86_64.img.zst   compressed shared Ubuntu backing image
+    ├── iscsi.qcow2                  iSCSI/scsi_debug overlay
+    └── kafka*.qcow2                 Kafka broker/client overlays
 
 Main AE runtime paths
 ├── scsi_debug functional/recovery tests in Ubuntu VM
@@ -25,18 +25,18 @@ Performance/build paths
 └── optional rebuild and install of the BC-EH kernel inside a VM or on bare metal
 ```
 
-This artifact is split into a GitHub repository and VM disk images hosted on
-Zenodo. The GitHub repository contains the source code, test scripts, VM setup
-helpers, host-side QEMU experiment launcher, and documentation. The large
-`.qcow2` and `.img` files are not tracked by Git; they should be downloaded
-from Zenodo and placed in the artifact root directory next to `Makefile`.
+This artifact is split into a GitHub repository and externally hosted VM disk
+images. The GitHub repository contains the source code, test scripts, VM setup
+helpers, host-side QEMU experiment launcher, and documentation. The large VM
+image files are not tracked by Git; they should be downloaded from the VM image
+archive and placed in the artifact root directory next to `Makefile`.
 
 The Ubuntu base image is the shared backing image for the iSCSI and Kafka
 `.qcow2` overlays. It must remain unchanged and must be kept at the expected
 relative path. Evaluators should boot the overlay images rather than modifying
 or booting the base image directly.
 
-After the Zenodo image files are placed in the artifact root, the expected
+After the VM image files are placed in the artifact root, the expected
 top-level layout is:
 
 ```text
@@ -87,16 +87,16 @@ bc_eh_test/
   parameters.
 
 - `ubuntu20046_x86_64.img`
-  Zenodo-provided Ubuntu 20.04.6 base image. It is the shared backing image for
-  the VM overlays. Keep it unchanged and keep it next to the overlays.
+  Externally provided Ubuntu 20.04.6 base image. It is the shared backing image
+  for the VM overlays. Keep it unchanged and keep it next to the overlays.
 
 - `iscsi.qcow2`
-  Zenodo-provided Ubuntu VM overlay used for the iSCSI experiments and for
+  Externally provided Ubuntu VM overlay used for the iSCSI experiments and for
   running standalone `scsi_debug` AE tests.
 
 - `kafka1-os.qcow2`, `kafka2-os.qcow2`, `kafka3-os.qcow2`,
   `kafka-client-os.qcow2`
-  Zenodo-provided Ubuntu VM overlays for the Kafka JBOD experiment.
+  Externally provided Ubuntu VM overlays for the Kafka JBOD experiment.
 
 The `bc_eh_test/scsi_debug/` directory contains:
 
@@ -184,17 +184,38 @@ used by the Kafka JBOD scripts.
 
 ## Download and Place VM Images
 
-The GitHub repository does not track large disk images. Download the following
-files from the Zenodo record for this artifact and place them in the artifact
-root directory:
+The GitHub repository does not track large disk images. Download the VM image
+archive from:
 
 ```text
-ubuntu20046_x86_64.img
+<VM_IMAGE_ARCHIVE_URL>
+```
+
+Download the following files and place them in the artifact root directory:
+
+```text
+ubuntu20046_x86_64.img.zst
 iscsi.qcow2
 kafka1-os.qcow2
 kafka2-os.qcow2
 kafka3-os.qcow2
 kafka-client-os.qcow2
+SHA256SUMS
+```
+
+The Ubuntu base image is compressed to reduce the external archive size. After
+downloading the files, verify the downloaded archive if desired, then
+decompress it:
+
+```bash
+sha256sum ubuntu20046_x86_64.img.zst
+zstd -d ubuntu20046_x86_64.img.zst
+```
+
+This produces:
+
+```text
+ubuntu20046_x86_64.img
 ```
 
 The `*.qcow2` files are overlay images whose backing file is
@@ -585,8 +606,9 @@ sudo bash formal_topic/leader_tilt_12_4/run_leader_tilt_12_4_layout.sh
 ```
 
 The Kafka figure in the paper contains six panels: three Kafka fault/layout
-cases, each run once with Linux EH and once with BC-EH. For each row below,
-start the pinned producer workload on `kafka-client`, then run the listed
+cases, each run once with Linux EH and once with BC-EH. Treat each row below
+as one experiment round: apply the listed layout on `kafka-1`, start the
+pinned producer workload on `kafka-client`, then run only that row's
 fault-injection entry on `kafka-1`.
 
 | Paper panel | Formal topic layout | Fault-injection entry on `kafka-1` |
@@ -602,7 +624,7 @@ The `default_layout` wrapper is useful for a default-layout sanity check, but
 the paper's six fixed-layout Kafka panels use `fixed_6_16` and
 `leader_tilt_12_4`.
 
-Then use the client VM for the producer workload:
+For the selected round, use the client VM for the producer workload:
 
 ```bash
 ssh -p 2204 root@127.0.0.1
@@ -611,19 +633,21 @@ cd ~/2004-BC-EH-Artifact-Evaluation/bc_eh_test/scsi_debug/kafka_jbod
 sudo bash workload/run_formal_pinned_partition_workload.sh
 ```
 
-Run fault injection on `kafka-1`. Use the Linux EH entries for the Linux
-baseline and the BC-EH entries for the BC-EH run:
+Then run the selected fault-injection entry from the table on `kafka-1`. For
+example:
 
 ```bash
 ssh -p 2201 root@127.0.0.1
 cd ~/2004-BC-EH-Artifact-Evaluation/bc_eh_test/scsi_debug/kafka_jbod
 
+# Linux EH offline round.
 sudo bash fault_injection/linux-eh/run_single_disk_offline_case.sh
-sudo bash fault_injection/linux-eh/run_single_disk_recoverable_stall_case.sh
-
-sudo bash fault_injection/bc-eh/run_single_disk_offline_case.sh
-sudo bash fault_injection/bc-eh/run_single_disk_recoverable_stall_case.sh
 ```
+
+Use the Linux EH entries for Linux baseline rounds and the BC-EH entries for
+BC-EH rounds. The offline case does not auto-recover the faulted disk; rerun
+the broker setup before the next Kafka round. The recoverable-stall case is a
+separate round and should be run only when that row is selected.
 
 Kafka outputs are split across the client VM and the fault-injection broker
 VM. On `kafka-client`, the producer workload writes the throughput timeline

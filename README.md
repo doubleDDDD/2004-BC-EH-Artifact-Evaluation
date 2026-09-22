@@ -82,9 +82,9 @@ bc_eh_test/
   use the installed kernel module through `modprobe scsi_debug`.
 
 - `Makefile`
-  Host-side QEMU experiment launcher for the Ubuntu base image, the iSCSI VM,
-  and the Kafka VMs, including disk-overlay, networking, SSH forwarding, and VM
-  topology parameters.
+  Host-side QEMU experiment launcher for the iSCSI VM and the Kafka VMs,
+  including disk-overlay, networking, SSH forwarding, and VM topology
+  parameters.
 
 - `ubuntu20046_x86_64.img`
   Zenodo-provided Ubuntu 20.04.6 base image. It is the shared backing image for
@@ -855,47 +855,5 @@ hardware that cannot be assumed for evaluators.
 The `ubuntu20046_x86_64.img` file is the backing image for the overlay VMs.
 It is included to make the overlays bootable; the normal AE path should use the
 overlay images rather than modifying the base image.
-
-<br>
-
-## Troubleshooting and Cleanup
-
-Check running VMs:
-
-```bash
-ps -ef | grep '[q]emu-system-x86_64 .* -name iscsi-vm'
-ps -ef | grep '[q]emu-system-x86_64 .* -name kafka'
-```
-
-Stop VMs:
-
-```bash
-sudo pkill -f '^qemu-system-x86_64 .* -name iscsi-vm( |$)' || true
-sudo pkill -f '^qemu-system-x86_64 .* -name kafka-1( |$)' || true
-sudo pkill -f '^qemu-system-x86_64 .* -name kafka-2( |$)' || true
-sudo pkill -f '^qemu-system-x86_64 .* -name kafka-3( |$)' || true
-sudo pkill -f '^qemu-system-x86_64 .* -name kafka-client( |$)' || true
-```
-
-To reset the host-side iSCSI setup before a fresh run, stop `iscsi-vm`, remove
-the host-side target, and remove the tap/bridge:
-
-```bash
-sudo pkill -f '^qemu-system-x86_64 .* -name iscsi-vm( |$)' || true
-sudo bash bc_eh_test/LLDD/iscsi_tcp/destroy_host.sh
-sudo bash bc_eh_test/LLDD/iscsi_tcp/net_cleanup.sh
-```
-
-`destroy_host.sh` removes the LIO target, fileio backstores, and
-`/var/lib/bc-eh-iscsi/lun*.img`. `net_cleanup.sh` removes `tap-iscsi0` and
-`br-iscsi`. Both cleanup scripts are safe to run repeatedly.
-
-If `modprobe scsi_debug` fails inside the VM, first check that the VM is booted
-into the BC-EH kernel and that the module is installed:
-
-```bash
-uname -r
-modinfo scsi_debug
-```
 
 <br>

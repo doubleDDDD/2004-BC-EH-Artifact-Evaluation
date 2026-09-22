@@ -3356,7 +3356,6 @@ static void megasas_prepare_secondRaid1_IO(struct megasas_instance *instance,
 			cmd->io_request->RaidContext.raid_context_g35.span_arm + 1;
 }
 
-// static u64 overtimecount;
 /**
  * megasas_build_and_issue_cmd_fusion -Main routine for building and
  *                                     issuing non IOCTL cmd
@@ -3370,8 +3369,6 @@ megasas_build_and_issue_cmd_fusion(struct megasas_instance *instance,
 	struct megasas_cmd_fusion *cmd, *r1_cmd = NULL;
 	union MEGASAS_REQUEST_DESCRIPTOR_UNION *req_desc;
 	u32 index;
-
-	//scsi_print_command(scmd);
 
 	if ((megasas_cmd_type(scmd) == READ_WRITE_LDIO) &&
 		instance->ldio_threshold &&
@@ -3438,13 +3435,6 @@ megasas_build_and_issue_cmd_fusion(struct megasas_instance *instance,
 	 */
 
 	megasas_sdev_busy_inc(instance, scmd);
-	// if (!instance->target_reset_succ) {
-	// 	overtimecount++;
-	// 	if (overtimecount > 1888 && strstr(scmd->device->vendor, "KIOXIA")) {
-	// 		pr_err("%s check timeout %lld index=%d!!!\n", __func__, overtimecount, index);
-	// 		return 0;
-	// 	}
-	// }
 	megasas_fire_cmd_fusion(instance, req_desc);
 
 	if (r1_cmd)
@@ -4752,12 +4742,6 @@ int megasas_task_abort_fusion(struct scsi_cmnd *scmd)
 
 	instance = (struct megasas_instance *)scmd->device->host->hostdata;
 
-	if (megasas_bc_mega_abort_should_fail(instance, scmd)) {
-		scmd_printk(KERN_NOTICE, scmd,
-				"bc-mega: force abort FAILED for swallowed command\n");
-		return FAILED;
-	}
-
 	if (atomic_read(&instance->adprecovery) != MEGASAS_HBA_OPERATIONAL) {
 		dev_err(&instance->pdev->dev, "Controller is not OPERATIONAL,"
 		"SCSI host:%d\n", instance->host->host_no);
@@ -4846,13 +4830,6 @@ int megasas_reset_target_fusion(struct scsi_cmnd *scmd)
 		return ret;
 	}
 
-	if (megasas_bc_mega_target_reset_should_succeed(instance, scmd)) {
-		scmd_printk(KERN_NOTICE, scmd,
-				"bc-mega: force target reset SUCCESS for injected command\n");
-		megasas_bc_mega_post_target_reset(instance, scmd, SUCCESS);
-		return SUCCESS;
-	}
-
 	if (!mr_device_priv_data) {
 		sdev_printk(KERN_INFO, scmd->device,
 			    "device been deleted! scmd: (0x%p)\n", scmd);
@@ -4887,13 +4864,10 @@ int megasas_reset_target_fusion(struct scsi_cmnd *scmd)
 			mr_device_priv_data);
 	mr_device_priv_data->tm_busy = false;
 	mutex_unlock(&instance->reset_mutex);
-	megasas_bc_mega_post_target_reset(instance, scmd, ret);
 	scmd_printk(KERN_NOTICE, scmd, "target reset %s!!\n",
 		(ret == SUCCESS) ? "SUCCESS" : "FAILED");
 
 out:
-	// ret = SUCCESS;
-	// instance->target_reset_succ = true;
 	return ret;
 }
 

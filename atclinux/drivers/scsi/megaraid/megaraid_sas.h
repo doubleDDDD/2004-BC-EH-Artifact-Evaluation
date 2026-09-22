@@ -2466,22 +2466,6 @@ struct megasas_instance {
 	u8  low_latency_index_start;
 	int perf_mode;
 	int iopoll_q_count;
-        u8 bc_mega_fault_stage;
-        int bc_mega_tur_budget_left;
-        struct scsi_cmnd *bc_mega_held_scmd;
-};
-
-enum bc_mega_fault_mode {
-	BC_MEGA_FAULT_OFF = 0,
-	BC_MEGA_FAULT_P2 = 2,
-	BC_MEGA_FAULT_P3 = 3,
-};
-
-enum bc_mega_fault_stage {
-	BC_MEGA_STAGE_IDLE = 0,
-	BC_MEGA_STAGE_PRE_TIMEOUT,
-	BC_MEGA_STAGE_POST_TRESET_VERIFY,
-	BC_MEGA_STAGE_DONE,
 };
 
 struct MR_LD_VF_MAP {
@@ -2776,15 +2760,5 @@ void megasas_exit_debugfs(void);
 void megasas_setup_debugfs(struct megasas_instance *instance);
 void megasas_destroy_debugfs(struct megasas_instance *instance);
 int megasas_blk_mq_poll(struct Scsi_Host *shost, unsigned int queue_num);
-
-bool megasas_bc_mega_is_fault_vd(struct megasas_instance *instance,
-				struct scsi_cmnd *scmd);
-bool megasas_bc_mega_abort_should_fail(struct megasas_instance *instance,
-				struct scsi_cmnd *scmd);
-bool megasas_bc_mega_target_reset_should_succeed(
-				struct megasas_instance *instance,
-				struct scsi_cmnd *scmd);
-void megasas_bc_mega_post_target_reset(struct megasas_instance *instance,
-				struct scsi_cmnd *scmd, int ret);
 
 #endif				/*LSI_MEGARAID_SAS_H */

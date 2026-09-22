@@ -56,6 +56,21 @@ HBA_PARAMETER_1 += -device intel-iommu,intremap=on,caching-mode=on # The key poi
 # have IOMMU enabled during compilation.
 # Device Drivers->IOMMU Hardware Support->Support for Interrupt Remapping
 HBA_PARAMETER_2 := -device vfio-pci,host=$(HBA_HOST)
+
+
+BASE_PARAMETER := -name ubuntu-base \
+	-m 4G \
+	-cpu host \
+	-machine q35,accel=kvm,kernel-irqchip=split \
+	-enable-kvm \
+	-smp 4,sockets=1,cores=4,threads=1 \
+	-drive file=./ubuntu20046_x86_64.img,format=qcow2,if=virtio \
+	-netdev user,id=mgmt-base,hostfwd=tcp:127.0.0.1:2222-:22 \
+	-device virtio-net-pci,netdev=mgmt-base,mac=52:54:00:10:00:01 \
+	-display none \
+	-daemonize
+
+
 KAFKA_JBOD_PARAMETER_1 := -name kafka-1 \
 	-m 8G \
 	-cpu host \

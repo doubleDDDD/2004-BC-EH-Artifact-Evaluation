@@ -1,11 +1,4 @@
-# TODO list
-5. 上传文件要md5
-
-<br>
-
 # 2004-BC-EH-Artifact-Evaluation
-
-<br>
 
 ## Artifact Contents
 
@@ -440,14 +433,22 @@ the host's existing networks, VPNs, Docker/libvirt bridges, or routes. For
 example, use `10.66.0.1` if `10.66.0.0/24` is unused on the host.
 
 ```bash
+cd 2004-BC-EH-Artifact-Evaluation
+
 export BC_EH_ISCSI_PORTAL_IP=<host-private-ip>   # for example: 10.66.0.1
+```
+
+If a previous iSCSI run left host-side state behind, clean it before starting
+again. These cleanup scripts are safe to run repeatedly:
+
+```bash
+sudo bash bc_eh_test/LLDD/iscsi_tcp/destroy_host.sh
+sudo bash bc_eh_test/LLDD/iscsi_tcp/net_cleanup.sh
 ```
 
 Prepare the host-side network and target, then start `iscsi-vm`:
 
 ```bash
-cd 2004-BC-EH-Artifact-Evaluation
-
 sudo -E bash bc_eh_test/LLDD/iscsi_tcp/net_ready.sh
 sudo -E bash bc_eh_test/LLDD/iscsi_tcp/create_host.sh
 make iscsi
@@ -811,20 +812,18 @@ make iscsi-stop
 make kafka-stop
 ```
 
-Remove the host-side iSCSI target:
+To reset the host-side iSCSI setup before a fresh run, stop `iscsi-vm`, remove
+the host-side target, and remove the tap/bridge:
 
 ```bash
+make iscsi-stop
 sudo bash bc_eh_test/LLDD/iscsi_tcp/destroy_host.sh
+sudo bash bc_eh_test/LLDD/iscsi_tcp/net_cleanup.sh
 ```
 
-Remove the host-side iSCSI tap/bridge:
-
-```bash
-sudo ip link set tap-iscsi0 down || true
-sudo ip link delete tap-iscsi0 || true
-sudo ip link set br-iscsi down || true
-sudo ip link delete br-iscsi || true
-```
+`destroy_host.sh` removes the LIO target, fileio backstores, and
+`/var/lib/bc-eh-iscsi/lun*.img`. `net_cleanup.sh` removes `tap-iscsi0` and
+`br-iscsi`. Both cleanup scripts are safe to run repeatedly.
 
 If `modprobe scsi_debug` fails inside the VM, first check that the VM is booted
 into the BC-EH kernel and that the module is installed:

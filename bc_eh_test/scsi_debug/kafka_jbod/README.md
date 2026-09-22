@@ -6,6 +6,8 @@ fault-injection scripts for the Kafka JBOD experiment.
 The provided Kafka VM images have Kafka installed at
 `/root/kafka_2.13-4.2.0`.
 
+<br>
+
 ## Directory Overview
 
 This `README.md` describes the files and subdirectories at this level:
@@ -124,6 +126,8 @@ kafka_jbod/
   `cleanup_kafka_jbod_baseline.sh`; it unmounts Kafka data disks and unloads
   `scsi_debug`-related modules.
 
+<br>
+
 ## Current 4-VM setup
 - The current setup uses three Kafka broker VMs and one Kafka client VM.
 - The three broker VMs use `scsi_debug`-backed Kafka data disks.
@@ -131,11 +135,11 @@ kafka_jbod/
 - Each VM uses two NICs.
 - `enp0s2` is the management NIC:
   - backed by QEMU `-netdev user`
-  - guest side uses `dhcp4: true`
-  - host side SSH forwarding is `2201/2202/2203/2204 -> guest:22`
+  - guest-side uses `dhcp4: true`
+  - host-side SSH forwarding is `2201/2202/2203/2204 -> guest:22`
 - `enp0s3` is the Kafka cluster NIC:
   - backed by QEMU `-netdev socket,mcast=239.192.168.1:1102`
-  - guest side uses static addressing
+  - guest-side uses static addressing
   - Kafka `advertised.listeners` and `controller.quorum.voters` bind to this NIC, not `enp0s2`
 
 | VM | OS overlay | host SSH port | `enp0s2` MAC | `enp0s3` MAC | `enp0s3` IP |
@@ -160,6 +164,8 @@ ssh -p 2203 root@127.0.0.1   # kafka-3
 ssh -p 2204 root@127.0.0.1   # kafka-client
 ```
 
+<br>
+
 ### QEMU startup
 Start the Kafka VM set from the artifact root directory:
 
@@ -177,9 +183,13 @@ make kafka3
 make kafka-client
 ```
 
+<br>
+
 ## Expected Setup Result
 After `setup_kafka_jbod_baseline.sh` finishes on a broker VM, that VM should
 show the following state.
+
+<br>
 
 ### Data Disks
 
@@ -197,6 +207,8 @@ The `scsi_debug` topology printed by the setup script should show:
 1 host / 1 channel / 3 targets / 1 lun per target
 ```
 
+<br>
+
 ### Kafka Storage
 
 Kafka topic data should be under:
@@ -213,6 +225,8 @@ Kafka KRaft metadata should remain on the system disk:
 /var/lib/kafka-metadata
 ```
 
+<br>
+
 ### Queue Settings
 
 The setup script configures symmetric queue settings for the three
@@ -228,6 +242,8 @@ max_queue = 192
 Here `192 = 64 * 3`, matching the three Kafka data disks created for each
 broker VM.
 
+<br>
+
 ### Cluster Readiness
 
 - After `setup_kafka_jbod_baseline.sh` has finished on `kafka-1`, `kafka-2`,
@@ -238,24 +254,26 @@ broker VM.
 - Before starting the producer workload, one `formal_topic/` layout wrapper
   should succeed on one broker VM.
 
+<br>
+
 ## Fault-Injection Stage
-Run fault-injection scripts after the broker setup, basic validation, formal
-topic layout, and producer workload have started. The default fault target is
-broker 1, target 0, corresponding to `/data/kafka-1/kafka-logs`; run these
-scripts on `kafka-1`.
+Run fault-injection scripts after broker setup, basic validation, and formal
+topic layout have completed, and after the producer workload has started. The
+default fault target is broker 1, target 0, corresponding to
+`/data/kafka-1/kafka-logs`; run these scripts on `kafka-1`.
 
 Linux EH entries:
 
 ```bash
-bash fault_injection/linux-eh/run_single_disk_offline_case.sh
-bash fault_injection/linux-eh/run_single_disk_recoverable_stall_case.sh
+sudo bash fault_injection/linux-eh/run_single_disk_offline_case.sh
+sudo bash fault_injection/linux-eh/run_single_disk_recoverable_stall_case.sh
 ```
 
 BC-EH entries:
 
 ```bash
-bash fault_injection/bc-eh/run_single_disk_offline_case.sh
-bash fault_injection/bc-eh/run_single_disk_recoverable_stall_case.sh
+sudo bash fault_injection/bc-eh/run_single_disk_offline_case.sh
+sudo bash fault_injection/bc-eh/run_single_disk_recoverable_stall_case.sh
 ```
 
 The `linux-eh/` entries select the `host` recovery path, and the `bc-eh/`
@@ -269,3 +287,5 @@ outputs are written to:
 ```text
 fault_injection/output/<timestamp>.<case>.<eh_profile>.<eh_mode>/
 ```
+
+<br>

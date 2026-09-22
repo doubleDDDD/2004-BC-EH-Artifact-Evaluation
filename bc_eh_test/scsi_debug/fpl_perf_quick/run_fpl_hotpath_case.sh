@@ -5,7 +5,7 @@ set -eu
 # - 默认只测 1 次
 # - 默认 runtime=5s
 # - 默认不预热
-# - 其余逻辑复用正式版 fpl_perf/run_fpl_hotpath_case.sh
+# - 其余逻辑复用 Ubuntu/modprobe 版 fpl_perf_real/run_fpl_hotpath_case.sh
 #
 # 例子：
 #   BC_EH_FPL_EH_MODE=host \
@@ -14,7 +14,7 @@ set -eu
 #   sh run_fpl_hotpath_case.sh
 
 SCRIPT_DIR="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"
-readonly UPSTREAM_CASE_SH="${SCRIPT_DIR}/../fpl_perf/run_fpl_hotpath_case.sh"
+readonly UPSTREAM_CASE_SH="${SCRIPT_DIR}/../fpl_perf_real/run_fpl_hotpath_case.sh"
 
 [ -x "${UPSTREAM_CASE_SH}" ] || [ -f "${UPSTREAM_CASE_SH}" ] || {
     printf 'missing upstream script: %s\n' "${UPSTREAM_CASE_SH}" >&2

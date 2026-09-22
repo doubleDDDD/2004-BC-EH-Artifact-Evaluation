@@ -6,9 +6,6 @@ PATH=/sbin:/bin:/usr/sbin:/usr/bin:${PATH:-}
 readonly BC_EH_SCRIPT_DIR="${SCRIPT_DIR:-$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)}"
 readonly BC_EH_RUN_ROOT="${BC_EH_RUN_ROOT:-/tmp/bc_eh_test}"
 readonly BC_EH_SCSI_DEBUG_ROOT="${BC_EH_RUN_ROOT}/scsi_debug"
-readonly BC_EH_MODULE_DIR="${BC_EH_MODULE_DIR:-/double_D/modules}"
-readonly BC_EH_CRC_T10DIF_KO="${BC_EH_MODULE_DIR}/crc-t10dif.ko"
-readonly BC_EH_SCSI_DEBUG_KO="${BC_EH_MODULE_DIR}/scsi_debug.ko"
 readonly BC_EH_COMPLEX_NUM_CHANNELS="${BC_EH_COMPLEX_NUM_CHANNELS:-2}"
 readonly BC_EH_COMPLEX_NUM_TARGETS="${BC_EH_COMPLEX_NUM_TARGETS:-2}"
 readonly BC_EH_COMPLEX_MAX_LUNS="${BC_EH_COMPLEX_MAX_LUNS:-2}"
@@ -74,7 +71,13 @@ bc_eh_resolve_fio_bin()
         return 0
     fi
 
-    for candidate in "${BC_EH_SCRIPT_DIR}/../fio" /double_D/fio /bin/fio; do
+    candidate="$(command -v fio 2>/dev/null || true)"
+    if [ -n "${candidate}" ] && [ -x "${candidate}" ]; then
+        printf '%s\n' "${candidate}"
+        return 0
+    fi
+
+    for candidate in "${BC_EH_SCRIPT_DIR}/../fio" /bin/fio /usr/bin/fio; do
         if [ -x "${candidate}" ]; then
             printf '%s\n' "${candidate}"
             return 0
@@ -94,11 +97,8 @@ bc_eh_cleanup_scsi_debug_env()
         pkill -9 -x fio >/dev/null 2>&1 || true
     fi
 
-    rmmod scsi_debug >/dev/null 2>&1 || true
-    rmmod crc_t10dif >/dev/null 2>&1 || true
-    rmmod sg >/dev/null 2>&1 || true
-    rmmod sr_mod >/dev/null 2>&1 || true
-    rmmod sd_mod >/dev/null 2>&1 || true
+    modprobe -r scsi_debug >/dev/null 2>&1 || true
+    modprobe -r crc_t10dif >/dev/null 2>&1 || true
 }
 
 bc_eh_load_scsi_debug()
@@ -114,12 +114,8 @@ bc_eh_load_scsi_debug()
     num_tgts="$2"
     max_luns="$3"
 
-    [ -d "${BC_EH_MODULE_DIR}" ] || bc_eh_die "module dir not found: ${BC_EH_MODULE_DIR}"
-    [ -f "${BC_EH_CRC_T10DIF_KO}" ] || bc_eh_die "crc-t10dif module not found: ${BC_EH_CRC_T10DIF_KO}"
-    [ -f "${BC_EH_SCSI_DEBUG_KO}" ] || bc_eh_die "scsi_debug module not found: ${BC_EH_SCSI_DEBUG_KO}"
-
-    bc_eh_log "insmod ${BC_EH_CRC_T10DIF_KO}"
-    insmod "${BC_EH_CRC_T10DIF_KO}" || bc_eh_die "failed to insmod ${BC_EH_CRC_T10DIF_KO}"
+    bc_eh_log "modprobe crc_t10dif"
+    modprobe crc_t10dif >/dev/null 2>&1 || true
 
     if [ -n "${SDEBUG_EH_RESET_MASK:-}" ]; then
         eh_reset_mask_arg="eh_reset_mask=${SDEBUG_EH_RESET_MASK}"
@@ -130,8 +126,8 @@ bc_eh_load_scsi_debug()
     fi
 
     if [ -n "${host_can_queue}" ]; then
-        bc_eh_log "insmod ${BC_EH_SCSI_DEBUG_KO}: num_channels=${num_channels} num_tgts=${num_tgts} max_luns=${max_luns} host_max_queue=${host_can_queue} max_queue=${host_can_queue}${eh_reset_mask_arg:+ ${eh_reset_mask_arg}}"
-        insmod "${BC_EH_SCSI_DEBUG_KO}" \
+        bc_eh_log "modprobe scsi_debug: num_channels=${num_channels} num_tgts=${num_tgts} max_luns=${max_luns} host_max_queue=${host_can_queue} max_queue=${host_can_queue}${eh_reset_mask_arg:+ ${eh_reset_mask_arg}}"
+        modprobe scsi_debug \
             add_host=1 \
             num_channels="${num_channels}" \
             num_tgts="${num_tgts}" \
@@ -143,10 +139,10 @@ bc_eh_load_scsi_debug()
             dsense="${SDEBUG_DSENSE:-1}" \
             delay="${SDEBUG_DELAY:-1}" \
             ${eh_reset_mask_arg} \
-            || bc_eh_die "failed to insmod ${BC_EH_SCSI_DEBUG_KO}"
+            || bc_eh_die "failed to modprobe scsi_debug"
     else
-        bc_eh_log "insmod ${BC_EH_SCSI_DEBUG_KO}: num_channels=${num_channels} num_tgts=${num_tgts} max_luns=${max_luns}${eh_reset_mask_arg:+ ${eh_reset_mask_arg}}"
-        insmod "${BC_EH_SCSI_DEBUG_KO}" \
+        bc_eh_log "modprobe scsi_debug: num_channels=${num_channels} num_tgts=${num_tgts} max_luns=${max_luns}${eh_reset_mask_arg:+ ${eh_reset_mask_arg}}"
+        modprobe scsi_debug \
             add_host=1 \
             num_channels="${num_channels}" \
             num_tgts="${num_tgts}" \
@@ -156,7 +152,7 @@ bc_eh_load_scsi_debug()
             dsense="${SDEBUG_DSENSE:-1}" \
             delay="${SDEBUG_DELAY:-1}" \
             ${eh_reset_mask_arg} \
-            || bc_eh_die "failed to insmod ${BC_EH_SCSI_DEBUG_KO}"
+            || bc_eh_die "failed to modprobe scsi_debug"
     fi
 
     if command -v mdev >/dev/null 2>&1; then

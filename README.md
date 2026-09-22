@@ -115,80 +115,21 @@ ssh -p 2204 zc@127.0.0.1   # kafka-client
 ssh -p 2210 zc@127.0.0.1   # iscsi-vm
 ssh -p 2222 zc@127.0.0.1   # ubuntu-base
 
-```bash
-doubled@super:~/workspace/githublinux/linux$ git log
-commit 907b8a9cda01436bdd35e0d8461bbbc1f718a713 (HEAD -> b618, origin/b618)
-Author: doubled <18374822143@163.com>
-Date:   Tue Jun 9 00:24:55 2026 +0800
-
-    update
-
-    Signed-off-by: doubled <18374822143@163.com>
-```
-
-### 第一件事我得先统一一下镜像
 make iscsi
 ssh -p 2210 zc@127.0.0.1
-```bash
-commit ec4a05fd3880745be9dfd13782827bd491ddf292 (HEAD -> b618, origin/b618)
-Author: doubled <18374822143@163.com>
-Date:   Mon Jun 8 22:45:32 2026 +0800
 
-    update
-
-    Signed-off-by: doubled <18374822143@163.com>
-
-Linux kafka-client 6.18.0-00087-gec4a05fd3880 #657 SMP PREEMPT_DYNAMIC Mon Jun  8 22:52:14 CST 2026 x86_64 x86_64 x86_64 GNU/Linux
-```
 make kafka1
 ssh -p 2201 zc@127.0.0.1
-```bash
-commit a8263b8d30fe5b888976ac371c20fd9d1f5856ba (HEAD -> b618, origin/b618)
-Author: Dongdong Hao <doubled@leap-io-kernel.com>
-Date:   Wed May 20 19:31:54 2026 +0800
-
-    update
-
-5.4.0-216-generic  6.18.0-00066-gbb7b31dc685a  6.18.0-00067-ga8263b8d30fe
-
-Linux kafka-1 6.18.0-00067-ga8263b8d30fe #643 SMP PREEMPT_DYNAMIC Wed May 20 19:34:37 CST 2026 x86_64 x86_64 x86_64 GNU/Linux
-```
 
 make kafka2
 ssh -p 2202 zc@127.0.0.1
-```bash
-commit a8263b8d30fe5b888976ac371c20fd9d1f5856ba (HEAD -> b618, origin/b618)
-Author: Dongdong Hao <doubled@leap-io-kernel.com>
-Date:   Wed May 20 19:31:54 2026 +0800
-
-    update
-
-Linux kafka-2 6.18.0-00067-ga8263b8d30fe #643 SMP PREEMPT_DYNAMIC Wed May 20 19:34:38 CST 2026 x86_64 x86_64 x86_64 GNU/Linux
-```
 
 make kafka3
 ssh -p 2203 zc@127.0.0.1
-```bash
-commit a8263b8d30fe5b888976ac371c20fd9d1f5856ba (HEAD -> b618, origin/b618)
-Author: Dongdong Hao <doubled@leap-io-kernel.com>
-Date:   Wed May 20 19:31:54 2026 +0800
-
-    update
-
-Linux kafka-3 6.18.0-00067-ga8263b8d30fe #643 SMP PREEMPT_DYNAMIC Wed May 20 19:34:40 CST 2026 x86_64 x86_64 x86_64 GNU/Linux
-```
 
 make kafka-client
 ssh -p 2204 zc@127.0.0.1
-```bash
-commit a8263b8d30fe5b888976ac371c20fd9d1f5856ba (HEAD -> b618, origin/b618)
-Author: Dongdong Hao <doubled@leap-io-kernel.com>
-Date:   Wed May 20 19:31:54 2026 +0800
 
-    update
-
-Linux kafka-client 6.18.0-00067-ga8263b8d30fe #643 SMP PREEMPT_DYNAMIC Wed May 20 19:34:37 CST 2026 x86_64 x86_64 x86_64 GNU/Linux
-```
 
 
 

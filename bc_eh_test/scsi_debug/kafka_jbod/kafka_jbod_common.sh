@@ -6,7 +6,6 @@ PATH=/sbin:/bin:/usr/sbin:/usr/bin:${PATH:-}
 readonly KAFKA_JBOD_SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 readonly KAFKA_JBOD_PARENT_DIR="$(cd "${KAFKA_JBOD_SCRIPT_DIR}/.." && pwd)"
 
-export BC_EH_MODULE_DIR="${BC_EH_MODULE_DIR:-/double_D/modules}"
 export BC_EH_TOPOLOGY="${BC_EH_TOPOLOGY:-complextopo}"
 export BC_EH_COMPLEX_NUM_CHANNELS="${BC_EH_COMPLEX_NUM_CHANNELS:-1}"
 export BC_EH_COMPLEX_NUM_TARGETS="${BC_EH_COMPLEX_NUM_TARGETS:-3}"
@@ -46,7 +45,7 @@ kafka_jbod_require_root() {
 }
 
 # Kafka JBOD runs on a full Ubuntu install, so scsi_debug comes from the
-# system module tree instead of the ramdisk's /double_D/modules bundle.
+# system module tree via modprobe.
 kafka_jbod_load_scsi_debug() {
     local num_channels
     local num_tgts

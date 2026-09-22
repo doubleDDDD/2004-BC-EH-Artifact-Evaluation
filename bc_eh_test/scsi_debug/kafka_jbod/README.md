@@ -5,7 +5,6 @@ fault-injection scripts for the Kafka JBOD experiment.
 
 The provided Kafka VM images have Kafka installed at
 `/root/kafka_2.13-4.2.0`.
-
 <br>
 
 ## Directory Overview

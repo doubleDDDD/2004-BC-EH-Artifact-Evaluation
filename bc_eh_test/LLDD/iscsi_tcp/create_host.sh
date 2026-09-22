@@ -3,7 +3,7 @@ set -euo pipefail
 
 TARGET_IQN="iqn.2026-06.com.bc-eh:target0"
 INITIATOR_IQN="iqn.2026-06.com.bc-eh:iscsi-vm"
-TARGET_IP="10.66.0.1"
+TARGET_IP="${BC_EH_ISCSI_PORTAL_IP:?set BC_EH_ISCSI_PORTAL_IP}"
 TARGET_PORT="3260"
 
 BACKEND_ROOT="/var/lib/bc-eh-iscsi"

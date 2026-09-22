@@ -189,6 +189,7 @@ MPT3SAS_VM_PARAMETER := -name mpt3sas-vm \
 
 .PHONY:help
 help:
+	@echo make ubuntu-base  -- start base Ubuntu guest VM
 	@echo make dr  -- start debug kernel without dev
 	@echo make dhba  -- start debug pcie scsi host, hba
 	@echo make kafka  -- start all kafka jbod VMs and client VM
@@ -204,6 +205,10 @@ help:
 	@echo make mpt3sas-ps -- show mpt3sas passthrough VM
 	@echo make mad -- gen manual ramdisk.img
 	@echo make aud -- gen auto ramdisk.img
+
+.PHONY:ubuntu-base
+ubuntu-base:
+	$(QEMU) $(BASE_PARAMETER)
 
 .PHONY:dr
 dr:

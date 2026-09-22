@@ -863,22 +863,25 @@ overlay images rather than modifying the base image.
 Check running VMs:
 
 ```bash
-make iscsi-ps
-make kafka-ps
+ps -ef | grep '[q]emu-system-x86_64 .* -name iscsi-vm'
+ps -ef | grep '[q]emu-system-x86_64 .* -name kafka'
 ```
 
 Stop VMs:
 
 ```bash
-make iscsi-stop
-make kafka-stop
+sudo pkill -f '^qemu-system-x86_64 .* -name iscsi-vm( |$)' || true
+sudo pkill -f '^qemu-system-x86_64 .* -name kafka-1( |$)' || true
+sudo pkill -f '^qemu-system-x86_64 .* -name kafka-2( |$)' || true
+sudo pkill -f '^qemu-system-x86_64 .* -name kafka-3( |$)' || true
+sudo pkill -f '^qemu-system-x86_64 .* -name kafka-client( |$)' || true
 ```
 
 To reset the host-side iSCSI setup before a fresh run, stop `iscsi-vm`, remove
 the host-side target, and remove the tap/bridge:
 
 ```bash
-make iscsi-stop
+sudo pkill -f '^qemu-system-x86_64 .* -name iscsi-vm( |$)' || true
 sudo bash bc_eh_test/LLDD/iscsi_tcp/destroy_host.sh
 sudo bash bc_eh_test/LLDD/iscsi_tcp/net_cleanup.sh
 ```

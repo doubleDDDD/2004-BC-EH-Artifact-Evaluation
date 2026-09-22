@@ -9,18 +9,18 @@ export BC_EH_COMPLEX_QUEUE_TUNING=1
 export BC_EH_COMPLEX_PER_DISK_QUEUE_DEPTH=64
 export BC_EH_COMPLEX_PER_DISK_NR_REQUESTS=64
 
-# 故障场景：
-# - 主题：sequence convoy / linux-eh
-# - 拓扑与 bc-eh 版本一致：1 channel，8 target，每个 target 2 个 lun
-# - 每个 target 的 lun0 健康活跃，lun1 为异常盘
-# - 8 个异常 lun 在 warmup 后按 target 顺序连续进入
-# - 每个异常 lun 的初始 I/O 先 timeout + abort fail，拉起 EH
-# - 随后的 device / target / bus / host reset 都成功
-# - 但每一级 reset 之后的 EH TUR 都继续 timeout，直到 linux-eh 升级到 host 并最终离线
-# - 目标：用 linux-eh 运行同一个 convoy 例子，作为对照
-# - 注入方式：
-#   fio 预热后，连续向 8 个 target 的 lun1 写入 error 规则，
-#   制造“相邻错误连续进入，但彼此 scope 独立”的最坏 convoy
+# Fault scenario:
+# - Topic: sequence convoy / linux-eh
+# - Topology is identical to the bc-eh version: 1 channel, 8 targets, 2 LUNs per target
+# - lun0 of each target is healthy and active; lun1 is the faulty disk
+# - 8 faulty LUNs enter sequentially by target order after warmup
+# - initial I/O on each faulty LUN first times out and abort fails, triggering EH
+# - subsequent device / target / bus / host resets all succeed
+# - but EH TUR keeps timing out after each reset level until linux-eh escalates to host and finally offlines the device
+# - Goal: Run the same convoy case with linux-eh as the control
+# - Injection method:
+#   after fio warmup, continuously write error rules to lun1 of 8 targets,
+#   create the worst-case convoy where adjacent errors enter consecutively but remain scope-independent
 
 SCRIPT_DIR="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"
 # shellcheck source=/dev/null

@@ -176,8 +176,8 @@ for partition_name, expected in sorted(expected_by_partition.items()):
         stats["leader_count"] += 1
         stats["leader_partitions"].append(partition_name)
 
-print(f"主题: {topic_name}")
-print("布局: leader_tilt_12_4")
+print(f"Topic: {topic_name}")
+print("Layout: leader_tilt_12_4")
 for group in group_summaries:
     log_dir = os.path.normpath(group["log_dir"])
     stats = actual_group_stats.get(log_dir, {
@@ -188,13 +188,13 @@ for group in group_summaries:
     })
     print(f"log.dir: {log_dir}")
     print(
-        f"  实际 partitions={stats['partition_count']}, 期望 partitions={group['partition_count']}"
+        f"  actual partitions={stats['partition_count']}, expected partitions={group['partition_count']}"
     )
     print(
-        f"  实际 leader={stats['leader_count']}, 期望 leader={group['leader_count']}"
+        f"  actual leaders={stats['leader_count']}, expected leaders={group['leader_count']}"
     )
-    print(f"  实际 partitions: {', '.join(stats['partitions'])}")
-    print(f"  实际 leaders: {', '.join(stats['leader_partitions'])}")
+    print(f"  actual partitions: {', '.join(stats['partitions'])}")
+    print(f"  actual leaders: {', '.join(stats['leader_partitions'])}")
 
 if errors:
     print("[kafka-formal-topic][error] leader_tilt_12_4 exact layout check failed")
@@ -202,8 +202,8 @@ if errors:
         print(f"  - {error}")
     raise SystemExit(1)
 
-print("布局判定: 通过")
-print("结论: broker-1 已收敛到 12/4 leader 倾斜布局，可直接用于更强调 leader 迁移路径的 offline 对比")
+print("Layout check: PASS")
+print("Conclusion: broker-1 has converged to the 12/4 leader-skew layout and can be used directly for offline comparison that emphasizes leader migration paths")
 PY
 
     ft_log "Saved exact-layout describe output to ${describe_file}"

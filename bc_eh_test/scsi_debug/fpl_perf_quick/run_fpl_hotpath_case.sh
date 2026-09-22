@@ -1,13 +1,13 @@
 #!/bin/sh
 set -eu
 
-# 快速版单 case 入口：
-# - 默认只测 1 次
-# - 默认 runtime=5s
-# - 默认不预热
-# - 其余逻辑复用 Ubuntu/modprobe 版 fpl_perf_real/run_fpl_hotpath_case.sh
+# Quick single-case entry:
+# - defaults to one repeat
+# - defaults to runtime=5s
+# - defaults to no warmup
+# - the remaining logic reuses the Ubuntu/modprobe version in fpl_perf_real/run_fpl_hotpath_case.sh
 #
-# 例子：
+# Examples:
 #   BC_EH_FPL_EH_MODE=host \
 #   BC_EH_FPL_ACTIVE_DISKS=4 \
 #   BC_EH_FPL_WORKLOAD=randread_64k \

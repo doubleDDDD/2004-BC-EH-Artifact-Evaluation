@@ -1,16 +1,16 @@
 #!/bin/sh
 set -eu
 
-# 用法：
-#   1) 直接运行，使用默认参数：
+# Usage:
+#   1) run directly with default parameters:
 #      sh run_fpl_hotpath_case.sh
-#   2) 指定单个测试组合：
+#   2) select a single test combination:
 #      BC_EH_FPL_EH_MODE=host \
 #      BC_EH_FPL_ACTIVE_DISKS=4 \
 #      BC_EH_FPL_WORKLOAD=randread_64k \
 #      BC_EH_FPL_REPEAT_INDEX=1 \
 #      sh run_fpl_hotpath_case.sh
-#   3) 更多例子：
+#   3) more examples:
 #      BC_EH_FPL_EH_MODE=host \
 #      BC_EH_FPL_ACTIVE_DISKS=1 \
 #      BC_EH_FPL_WORKLOAD=randwrite_16k \
@@ -30,27 +30,27 @@ set -eu
 #      BC_EH_FPL_WARMUP_SECS=10 \
 #      BC_EH_FPL_REPEAT_INDEX=1 \
 #      sh run_fpl_hotpath_case.sh
-#   4) 可选覆盖项：
+#   4) optional overrides:
 #      BC_EH_FPL_RUNTIME_SECS=60
 #      BC_EH_FPL_WARMUP_SECS=10
 #      BC_EH_FPL_PER_DISK_DEPTH=64
 #      BC_EH_FPL_DEV_SIZE_MB=128
 #
-# 参数说明：
+# Parameter notes:
 #   BC_EH_FPL_EH_MODE:      host | sdev
 #   BC_EH_FPL_ACTIVE_DISKS: 1 | 2 | 4 | 8 | 16
 #   BC_EH_FPL_WORKLOAD:     randread_4k | randread_16k | randread_64k | randread_256k |
 #                           randwrite_4k | randwrite_16k | randwrite_64k | randwrite_256k
-#   BC_EH_FPL_REPEAT_INDEX: 正整数，仅用于区分重复轮次输出目录
+#   BC_EH_FPL_REPEAT_INDEX: positive integer, used only to distinguish output directories for repeated runs
 #
-# 当前脚本固定：
-#   - 拓扑：1 host / 1 channel / 16 targets / 1 lun
-#   - 容量：128 MiB / disk
-#   - 每盘深度：queue_depth = nr_requests = fio iodepth = 64
-#   - host 深度：scsi_debug can_queue = host_max_queue = max_queue = 64 x N
-#   - scsi_debug 延迟：delay = 0（真机热路径开销上界口径）
-#   - 输出：fio 结果直接打印到终端；summary 模式仅输出单行 FPL_RESULT
-#   - 延迟口径统一使用 clat：输出 clat mean 与 clat p99，单位为 us
+# This script fixes:
+#   - Topology: 1 host / 1 channel / 16 targets / 1 lun
+#   - capacity:128 MiB / disk
+#   - per-disk depth:queue_depth = nr_requests = fio iodepth = 64
+#   - host depth:scsi_debug can_queue = host_max_queue = max_queue = 64 x N
+#   - scsi_debug delay:delay = 0(bare-metal hot-path overhead upper-bound setting)
+#   - Output:fio results are printed directly to the terminal; summary mode prints only one FPL_RESULT line
+#   - latency uses clat consistently: outputs clat mean and clat p99 in us
 
 export BC_EH_TOPOLOGY=complextopo
 export BC_EH_COMPLEX_NUM_CHANNELS=1

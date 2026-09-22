@@ -1,29 +1,29 @@
 #!/bin/sh
 set -eu
 
-# 故障场景：
-# - 功能验证分组：15_device_target_bus_host（device / target / bus / host 四级 reset handler 全实现）
-# - 独特用例：W1，checkpoint wait / re-enter
-# - 目标：验证“首个 fault 已经启动 sequence，随后同 host 的另一个 fault episode 延迟到达”时：
-#   1. 新 fault 先进入 pending fault 队列
-#   2. 在更大 reset scope 上被吸收
-#   3. checkpoint 因 busy != failed 返回 NEED_WAIT_IO_DONE
-#   4. 之后再次进入 checkpoint，继续推进恢复
-# - scsi_debug 模块参数：eh_reset_mask=0xf
-# - 拓扑：complextopo（完整 2ch_2tgt_2lun，共 8 盘）
-# - 命名节点映射：A=<host_no>:0:0:0，B=<host_no>:0:0:1，C=<host_no>:0:1:0，D=<host_no>:1:0:0
-# - active 节点：A、B、C、D
-# - idle 节点：E、F、G、H
-# - 故障域设计：
-#   A/B/C 从起始时刻故障，用于把 sequence 迅速推到 bus / host 方向
-#   D 起始保持健康并持续 I/O，延迟注入故障，用于制造 pending fault + wait/re-enter
-# - 预期日志关键字：
+# Fault scenario:
+# - Functional validation group: 15_device_target_bus_host (all four reset handlers implemented: device / target / bus / host)
+# - Special case: W1, checkpoint wait / re-enter
+# - Goal: Verify the case where the first fault has already started a sequence and another fault episode on the same host arrives later:
+#   1. the new fault first enters the pending-fault queue
+#   2. it is absorbed at a larger reset scope
+#   3. checkpoint returns NEED_WAIT_IO_DONE because busy != failed
+#   4. checkpoint is entered again afterward and recovery continues
+# - scsi_debug module parameter: eh_reset_mask=0xf
+# - Topology: complextopo (full 2ch_2tgt_2lun, 8 disks total)
+# - Named node mapping: A=<host_no>:0:0:0, B=<host_no>:0:0:1, C=<host_no>:0:1:0, D=<host_no>:1:0:0
+# - active nodes: A, B, C, D
+# - idle nodes: E, F, G, H
+# - Fault-domain design:
+#   A/B/C fail from the beginning to drive the sequence quickly toward bus / host scope
+#   D starts healthy and keeps issuing I/O; a delayed fault is injected to create pending fault + wait/re-enter
+# - Expected log keywords:
 #   1. enqueue pending fault
 #   2. absorb pending fault
-#   3. update_eh_field_to_host ... need wait(1) 或 update_eh_field_to_channel ... need wait(1)
-#   4. 后续再次进入同层 checkpoint，need wait(0) 后继续 reset
-# - 说明：
-#   该用例关注的是“结构性路径是否出现”，不是固定要求最终停在某一级 reset
+#   3. update_eh_field_to_host ... need wait(1) or update_eh_field_to_channel ... need wait(1)
+#   4. later re-enter the same-level checkpoint and continue reset after need wait(0)
+# - Note:
+#   this case checks whether the structural path appears, not a fixed final reset level
 
 SCRIPT_DIR="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"
 # shellcheck source=/dev/null

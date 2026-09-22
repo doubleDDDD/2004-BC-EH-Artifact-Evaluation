@@ -1,25 +1,25 @@
 #!/bin/sh
 set -eu
 
-# 故障场景：
-# - 功能验证分组：15_device_target_bus_host（device / target / bus / host 四级 reset handler 全实现）
-# - 独特用例：B1，bus reset terminal success
-# - 目标：验证在“target 不健康、channel 不健康、host 仍健康”时，恢复链应停在 bus reset，
-#   不应继续升级到 host reset
-# - scsi_debug 模块参数：eh_reset_mask=0xf
-# - 拓扑：complextopo（完整 2ch_2tgt_2lun，共 8 盘）
-# - 命名节点映射：A=<host_no>:0:0:0，B=<host_no>:0:0:1，C=<host_no>:0:1:0，D=<host_no>:1:0:0
-# - active 节点：A、B、C、D
-# - idle 节点：E、F、G、H
-# - 故障域设计：
-#   A/B 位于 target<host_no>:0:0，C 位于 target<host_no>:0:1，三者共同保证 channel-0 整体不健康
-#   D 位于 channel-1，持续健康 I/O，用于证明 host 仍有前向进展
-# - 预期恢复链：B+
-# - 关键观察点：
-#   1. 不应停在 device reset
-#   2. 不应停在 target reset
-#   3. 应进入 bus reset 并恢复
-#   4. 不应继续触发 host reset
+# Fault scenario:
+# - Functional validation group: 15_device_target_bus_host (all four reset handlers implemented: device / target / bus / host)
+# - Special case: B1, bus reset terminal success
+# - Goal: Verify that when the target is unhealthy, the channel is unhealthy, and the host remains healthy, the recovery chain should stop at bus reset,
+#   should not continue escalating to host reset
+# - scsi_debug module parameter: eh_reset_mask=0xf
+# - Topology: complextopo (full 2ch_2tgt_2lun, 8 disks total)
+# - Named node mapping: A=<host_no>:0:0:0, B=<host_no>:0:0:1, C=<host_no>:0:1:0, D=<host_no>:1:0:0
+# - active nodes: A, B, C, D
+# - idle nodes: E, F, G, H
+# - Fault-domain design:
+#   A/B are on target<host_no>:0:0 and C is on target<host_no>:0:1; together they make channel-0 unhealthy
+#   D is on channel-1 and keeps issuing healthy I/O to show host-level forward progress
+# - Expected recovery chain: B+
+# - Key observations:
+#   1. should not stop at device reset
+#   2. should not stop at target reset
+#   3. should enter bus reset and recover
+#   4. should not trigger host reset further
 
 SCRIPT_DIR="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"
 # shellcheck source=/dev/null

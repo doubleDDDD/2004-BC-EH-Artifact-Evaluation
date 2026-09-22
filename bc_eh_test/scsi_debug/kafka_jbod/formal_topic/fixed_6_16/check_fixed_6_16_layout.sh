@@ -176,8 +176,8 @@ for partition_name, expected in sorted(expected_by_partition.items()):
         stats["leader_count"] += 1
         stats["leader_partitions"].append(partition_name)
 
-print(f"主题: {topic_name}")
-print("布局: fixed_6_16")
+print(f"Topic: {topic_name}")
+print("Layout: fixed_6_16")
 for group in group_summaries:
     log_dir = os.path.normpath(group["log_dir"])
     stats = actual_group_stats.get(log_dir, {
@@ -188,13 +188,13 @@ for group in group_summaries:
     })
     print(f"log.dir: {log_dir}")
     print(
-        f"  实际 partitions={stats['partition_count']}, 期望 partitions={group['partition_count']}"
+        f"  actual partitions={stats['partition_count']}, expected partitions={group['partition_count']}"
     )
     print(
-        f"  实际 leader={stats['leader_count']}, 期望 leader={group['leader_count']}"
+        f"  actual leaders={stats['leader_count']}, expected leaders={group['leader_count']}"
     )
-    print(f"  实际 partitions: {', '.join(stats['partitions'])}")
-    print(f"  实际 leaders: {', '.join(stats['leader_partitions'])}")
+    print(f"  actual partitions: {', '.join(stats['partitions'])}")
+    print(f"  actual leaders: {', '.join(stats['leader_partitions'])}")
 
 if errors:
     print("[kafka-formal-topic][error] fixed_6_16 exact layout check failed")
@@ -202,8 +202,8 @@ if errors:
         print(f"  - {error}")
     raise SystemExit(1)
 
-print("布局判定: 通过")
-print("结论: broker-1 已收敛到固定 6/16 布局，可直接用于与 default 和 12/4 两组 layout 做并列 offline 对比")
+print("Layout check: PASS")
+print("Conclusion: broker-1 has converged to the fixed 6/16 layout and can be used directly for side-by-side offline comparison with the default and 12/4 layouts")
 PY
 
     ft_log "Saved exact-layout describe output to ${describe_file}"

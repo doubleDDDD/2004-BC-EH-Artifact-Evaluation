@@ -1,16 +1,16 @@
 #!/bin/sh
 set -eu
 
-# 故障场景：
-# - 功能验证分组：15_device_target_bus_host（device / target / bus / host 四级 reset handler 全实现）
-# - 独特用例：X1，cross-scope no-absorb then next-sequence
-# - 目标：验证当前 sequence 锚定在 target-0 reset scope 时，target-1 上的晚到 fault 不会被吸收，
-#   而是以 pending fault 形式等待当前 sequence 结束，再重启下一条 sequence
-# - 关键同步方式：
-#   1. A/B 从起始时刻故障，触发 target-0 reset
-#   2. 用 `target timeout 1` 拉长第一条 sequence 的 reset phase
-#   3. 在 target-0 reset 开始后，对 target-1 上的 C 延迟注入 fault
-# - 预期日志关键字：
+# Fault scenario:
+# - Functional validation group: 15_device_target_bus_host (all four reset handlers implemented: device / target / bus / host)
+# - Special case: X1, cross-scope no-absorb then next-sequence
+# - Goal: Verify that when the current sequence is anchored at target-0 reset scope, a late fault on target-1 is not absorbed,
+#   it waits as a pending fault until the current sequence ends, then restarts the next sequence
+# - Key synchronization method:
+#   1. A/B fail from the beginning and trigger target-0 reset
+#   2. use `target timeout 1` to lengthen the reset phase of the first sequence
+#   3. after target-0 reset starts, inject a delayed fault into C on target-1
+# - Expected log keywords:
 #   1. enqueue pending fault ... action=wait_next_sequence
 #   2. restart EH from pending fault
 

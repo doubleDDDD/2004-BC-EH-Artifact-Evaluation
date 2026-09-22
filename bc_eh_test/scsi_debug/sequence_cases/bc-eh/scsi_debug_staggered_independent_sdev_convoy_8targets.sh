@@ -9,19 +9,19 @@ export BC_EH_COMPLEX_QUEUE_TUNING=1
 export BC_EH_COMPLEX_PER_DISK_QUEUE_DEPTH=64
 export BC_EH_COMPLEX_PER_DISK_NR_REQUESTS=64
 
-# 故障场景：
-# - 主题：sequence convoy / bc-eh
-# - 拓扑：1 channel，8 target，每个 target 2 个 lun
-# - 每个 target 的 lun0 持续健康 I/O，lun1 为异常盘
-# - 8 个 target 下的异常 lun 在 warmup 后按 target 顺序连续进入
-# - 每个异常 lun 的初始 I/O 先 timeout + abort fail，拉起 EH
-# - 因为每个 target 都有一个健康活跃兄弟 lun，故每次故障都倾向停在 sdev scope
-# - 随后的 device / target / bus / host reset 都成功
-# - 但每一级 reset 之后的 EH TUR 都继续 timeout，用来制造最长恢复链
-# - 目标：稳定制造“很多独立 sdev fault 在单 host 上形成串行 sequence convoy”
-# - 注入方式：
-#   fio 预热后，连续向 8 个 target 的 lun1 写入 error 规则，
-#   制造“相邻错误连续进入，但彼此 scope 独立”的最坏 convoy
+# Fault scenario:
+# - Topic: sequence convoy / bc-eh
+# - Topology: 1 channel, 8 targets, 2 LUNs per target
+# - lun0 of each target keeps issuing healthy I/O; lun1 is the faulty disk
+# - the faulty LUNs under 8 targets enter sequentially by target order after warmup
+# - initial I/O on each faulty LUN first times out and abort fails, triggering EH
+# - because every target has a healthy active sibling LUN, each fault tends to stop at sdev scope
+# - subsequent device / target / bus / host resets all succeed
+# - but EH TUR keeps timing out after each reset level to create the longest recovery chain
+# - Goal: Reliably create a serial sequence convoy from many independent sdev faults on a single host
+# - Injection method:
+#   after fio warmup, continuously write error rules to lun1 of 8 targets,
+#   create the worst-case convoy where adjacent errors enter consecutively but remain scope-independent
 
 SCRIPT_DIR="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"
 # shellcheck source=/dev/null

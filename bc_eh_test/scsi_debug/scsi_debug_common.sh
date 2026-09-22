@@ -622,7 +622,7 @@ bc_eh_case_config_basictopo()
     case "${case_id}" in
         P1)
             BC_EH_CASE_SCOPE_CN="LUN"
-            BC_EH_CASE_DESC_CN="单设备局部瞬时停滞，device reset 可恢复"
+            BC_EH_CASE_DESC_CN="single-device local transient stall, device reset recoverable"
             BC_EH_CASE_PATH_CN="D+"
             BC_EH_ACTIVE_NODES="A"
             BC_EH_IDLE_NODES=""
@@ -631,9 +631,9 @@ bc_eh_case_config_basictopo()
             ;;
         P2)
             BC_EH_CASE_SCOPE_CN="Target"
-            BC_EH_CASE_DESC_CN="单 target 基础拓扑下验证 target reset 恢复路径"
+            BC_EH_CASE_DESC_CN="validate the target-reset recovery path in the single-target basic topology"
             BC_EH_CASE_PATH_CN="D- -> T+"
-            BC_EH_CASE_NOTE_CN="基础拓扑仅有一个 target，target 语义通过 reset 层级近似验证"
+            BC_EH_CASE_NOTE_CN="the basic topology has only one target; target semantics are approximated through reset levels"
             BC_EH_ACTIVE_NODES="A"
             BC_EH_IDLE_NODES=""
             BC_EH_PRIMARY_FAULT_NODE="A"
@@ -641,9 +641,9 @@ bc_eh_case_config_basictopo()
             ;;
         P3)
             BC_EH_CASE_SCOPE_CN="Host / controller"
-            BC_EH_CASE_DESC_CN="单设备基础拓扑下验证 host reset 恢复路径"
+            BC_EH_CASE_DESC_CN="validate the host-reset recovery path in the single-device basic topology"
             BC_EH_CASE_PATH_CN="D- -> T- -> B- -> H+"
-            BC_EH_CASE_NOTE_CN="基础拓扑仅有一个 target，target/bus/host 语义通过 reset 层级近似验证"
+            BC_EH_CASE_NOTE_CN="the basic topology has only one target; target/bus/host semantics are approximated through reset levels"
             BC_EH_ACTIVE_NODES="A"
             BC_EH_IDLE_NODES=""
             BC_EH_PRIMARY_FAULT_NODE="A"
@@ -653,9 +653,9 @@ ${BC_EH_RULE_BUS_RESET_FAIL}"
             ;;
         P4)
             BC_EH_CASE_SCOPE_CN="Target"
-            BC_EH_CASE_DESC_CN="device reset 返回，但 post-device TUR 验证失败，target reset 恢复"
+            BC_EH_CASE_DESC_CN="device reset returns, post-device TUR validation fails, and target reset recovers"
             BC_EH_CASE_PATH_CN="D+ / V- -> T+"
-            BC_EH_CASE_NOTE_CN="基础拓扑仅有一个 target，target 语义通过 reset 层级近似验证"
+            BC_EH_CASE_NOTE_CN="the basic topology has only one target; target semantics are approximated through reset levels"
             BC_EH_ACTIVE_NODES="A"
             BC_EH_IDLE_NODES=""
             BC_EH_PRIMARY_FAULT_NODE="A"
@@ -664,9 +664,9 @@ ${BC_EH_RULE_BUS_RESET_FAIL}"
             ;;
         P5)
             BC_EH_CASE_SCOPE_CN="Target"
-            BC_EH_CASE_DESC_CN="device reset 返回，但 post-device TUR 超时，target reset 恢复"
+            BC_EH_CASE_DESC_CN="device reset returns, post-device TUR times out, and target reset recovers"
             BC_EH_CASE_PATH_CN="D+ / V~ -> T+"
-            BC_EH_CASE_NOTE_CN="基础拓扑仅有一个 target，target 语义通过 reset 层级近似验证"
+            BC_EH_CASE_NOTE_CN="the basic topology has only one target; target semantics are approximated through reset levels"
             BC_EH_ACTIVE_NODES="A"
             BC_EH_IDLE_NODES=""
             BC_EH_PRIMARY_FAULT_NODE="A"
@@ -675,9 +675,9 @@ ${BC_EH_RULE_BUS_RESET_FAIL}"
             ;;
         P6)
             BC_EH_CASE_SCOPE_CN="Unrecoverable / multi-level"
-            BC_EH_CASE_DESC_CN="单设备基础拓扑下所有 reset 层级都失败"
+            BC_EH_CASE_DESC_CN="all reset levels fail in the single-device basic topology"
             BC_EH_CASE_PATH_CN="D- -> T- -> B- -> H-"
-            BC_EH_CASE_NOTE_CN="基础拓扑仅有一个 target，target/bus/host 语义通过 reset 层级近似验证"
+            BC_EH_CASE_NOTE_CN="the basic topology has only one target; target/bus/host semantics are approximated through reset levels"
             BC_EH_ACTIVE_NODES="A"
             BC_EH_IDLE_NODES=""
             BC_EH_PRIMARY_FAULT_NODE="A"
@@ -688,9 +688,9 @@ ${BC_EH_RULE_BUS_RESET_FAIL}"
             ;;
         P7)
             BC_EH_CASE_SCOPE_CN="Unrecoverable after host reset"
-            BC_EH_CASE_DESC_CN="host reset 返回，但设备仍无法通过验证"
+            BC_EH_CASE_DESC_CN="host reset returns but the device still fails validation"
             BC_EH_CASE_PATH_CN="D- -> T- -> B- -> H+ / V-"
-            BC_EH_CASE_NOTE_CN="基础拓扑仅有一个 target，target/bus/host 语义通过 reset 层级近似验证"
+            BC_EH_CASE_NOTE_CN="the basic topology has only one target; target/bus/host semantics are approximated through reset levels"
             BC_EH_ACTIVE_NODES="A"
             BC_EH_IDLE_NODES=""
             BC_EH_PRIMARY_FAULT_NODE="A"
@@ -701,7 +701,7 @@ ${BC_EH_RULE_BUS_RESET_FAIL}"
             ;;
         P8)
             BC_EH_CASE_SCOPE_CN="Permanent single-device failure"
-            BC_EH_CASE_DESC_CN="单设备永久故障，各级 reset 后 TUR 反复超时"
+            BC_EH_CASE_DESC_CN="single-device permanent fault, TUR keeps timing out after each reset level"
             BC_EH_CASE_PATH_CN="D+ / V~ -> T+ / V~ -> B+ / V~ -> H+ / V~"
             BC_EH_ACTIVE_NODES="A"
             BC_EH_IDLE_NODES=""
@@ -739,7 +739,7 @@ bc_eh_case_config()
     case "${case_id}" in
         P1)
             BC_EH_CASE_SCOPE_CN="LUN"
-            BC_EH_CASE_DESC_CN="单 LUN 局部瞬时停滞，device reset 可恢复"
+            BC_EH_CASE_DESC_CN="single-LUN local transient stall, device reset recoverable"
             BC_EH_CASE_PATH_CN="D+"
             BC_EH_ACTIVE_NODES="A B"
             BC_EH_IDLE_NODES="C D E F G H"
@@ -748,7 +748,7 @@ bc_eh_case_config()
             ;;
         P2)
             BC_EH_CASE_SCOPE_CN="Target"
-            BC_EH_CASE_DESC_CN="同一 target 内状态共享异常，device reset 失败，target reset 恢复"
+            BC_EH_CASE_DESC_CN="shared-state fault within the same target, device reset fails, target reset recovers"
             BC_EH_CASE_PATH_CN="D- -> T+"
             BC_EH_ACTIVE_NODES="A B C"
             BC_EH_IDLE_NODES="D E F G H"
@@ -758,7 +758,7 @@ bc_eh_case_config()
             ;;
         P3)
             BC_EH_CASE_SCOPE_CN="Host / controller"
-            BC_EH_CASE_DESC_CN="host/controller 级瞬时异常，低层 reset 无法恢复，最终 host reset 成功"
+            BC_EH_CASE_DESC_CN="host/controller-level transient fault, lower-level resets cannot recover, and host reset eventually succeeds"
             BC_EH_CASE_PATH_CN="D- -> T- -> B- -> H+"
             BC_EH_ACTIVE_NODES="A B C D"
             BC_EH_IDLE_NODES="E F G H"
@@ -772,7 +772,7 @@ ${BC_EH_RULE_BUS_RESET_FAIL}"
             ;;
         P4)
             BC_EH_CASE_SCOPE_CN="Target"
-            BC_EH_CASE_DESC_CN="device reset 返回，但 post-device TUR 验证失败，target reset 恢复"
+            BC_EH_CASE_DESC_CN="device reset returns, post-device TUR validation fails, and target reset recovers"
             BC_EH_CASE_PATH_CN="D+ / V- -> T+"
             BC_EH_ACTIVE_NODES="A B C"
             BC_EH_IDLE_NODES="D E F G H"
@@ -784,7 +784,7 @@ ${BC_EH_RULE_BUS_RESET_FAIL}"
             ;;
         P5)
             BC_EH_CASE_SCOPE_CN="Target"
-            BC_EH_CASE_DESC_CN="device reset 返回，但 post-device TUR 超时，target reset 恢复"
+            BC_EH_CASE_DESC_CN="device reset returns, post-device TUR times out, and target reset recovers"
             BC_EH_CASE_PATH_CN="D+ / V~ -> T+"
             BC_EH_ACTIVE_NODES="A B C"
             BC_EH_IDLE_NODES="D E F G H"
@@ -796,7 +796,7 @@ ${BC_EH_RULE_BUS_RESET_FAIL}"
             ;;
         P6)
             BC_EH_CASE_SCOPE_CN="Unrecoverable / multi-level"
-            BC_EH_CASE_DESC_CN="host 级持久异常，所有 reset 层级都失败"
+            BC_EH_CASE_DESC_CN="persistent host-level fault, all reset levels fail"
             BC_EH_CASE_PATH_CN="D- -> T- -> B- -> H-"
             BC_EH_ACTIVE_NODES="A B C D"
             BC_EH_IDLE_NODES="E F G H"
@@ -811,7 +811,7 @@ ${BC_EH_RULE_BUS_RESET_FAIL}"
             ;;
         P7)
             BC_EH_CASE_SCOPE_CN="Unrecoverable after host reset"
-            BC_EH_CASE_DESC_CN="host reset 返回，但设备仍无法通过验证"
+            BC_EH_CASE_DESC_CN="host reset returns but the device still fails validation"
             BC_EH_CASE_PATH_CN="D- -> T- -> B- -> H+ / V-"
             BC_EH_ACTIVE_NODES="A B C D"
             BC_EH_IDLE_NODES="E F G H"
@@ -826,7 +826,7 @@ ${BC_EH_RULE_BUS_RESET_FAIL}"
             ;;
         P8)
             BC_EH_CASE_SCOPE_CN="Permanent single-device failure"
-            BC_EH_CASE_DESC_CN="单设备永久故障，各级 reset 后 TUR 反复超时"
+            BC_EH_CASE_DESC_CN="single-device permanent fault, TUR keeps timing out after each reset level"
             BC_EH_CASE_PATH_CN="D+ / V~ -> T+ / V~ -> B+ / V~ -> H+ / V~"
             BC_EH_ACTIVE_NODES="A B"
             BC_EH_IDLE_NODES="C D E F G H"

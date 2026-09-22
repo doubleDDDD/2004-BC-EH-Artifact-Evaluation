@@ -1,12 +1,12 @@
 #!/bin/sh
 set -eu
 
-# 输出：
-#   - 原始 5 次结果写入当前目录下的 fpl_raw_results.csv
-#   - 每次运行都会覆盖该文件
-# 统计口径：
-#   - 仅保留原始重复测量结果
-#   - 延迟口径统一使用 clat，单位为 us
+# Output:
+#   - raw results from five repeats are written to fpl_raw_results.csv in the current directory
+#   - each run overwrites this file
+# Measurement scope:
+#   - only raw repeated measurements are kept
+#   - latency uses clat consistently, in us
 
 SCRIPT_DIR="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"
 readonly RUN_CASE_SH="${SCRIPT_DIR}/run_fpl_hotpath_case.sh"

@@ -1,16 +1,16 @@
 #!/bin/sh
 set -eu
 
-# 故障场景：
-# - 功能验证分组：15_device_target_bus_host（device / target / bus / host 四级 reset handler 全实现）
-# - 独特用例：P1，pending fault already queued
-# - 目标：验证同一晚到 fault sdev 在已挂入 pending queue 后，再次有新的 failed episode 到达时，
-#   不会重复入队，而是打印 `pending fault already queued`
-# - 关键同步方式：
-#   1. A/B 从起始时刻故障，触发 target-0 reset
-#   2. 用 `target timeout 1` 拉长第一条 sequence 的 reset phase
-#   3. 在 target-0 reset 开始后，对 target-1 上的 C 延迟注入 fault
-# - 预期日志关键字：
+# Fault scenario:
+# - Functional validation group: 15_device_target_bus_host (all four reset handlers implemented: device / target / bus / host)
+# - Special case: P1, pending fault already queued
+# - Goal: Verify that when the same late fault sdev is already in the pending queue and another failed episode arrives,
+#   it is not enqueued again and instead prints `pending fault already queued`
+# - Key synchronization method:
+#   1. A/B fail from the beginning and trigger target-0 reset
+#   2. use `target timeout 1` to lengthen the reset phase of the first sequence
+#   3. after target-0 reset starts, inject a delayed fault into C on target-1
+# - Expected log keywords:
 #   1. enqueue pending fault ... action=wait_next_sequence
 #   2. pending fault already queued
 

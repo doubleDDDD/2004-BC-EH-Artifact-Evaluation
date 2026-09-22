@@ -1,16 +1,16 @@
 #!/bin/sh
 set -eu
 
-# 故障场景：
-# - 功能验证分组：15_device_target_bus_host（device / target / bus / host 四级 reset handler 全实现）
-# - 独特用例：S1，scope-matched absorb before reset
-# - 目标：验证 host 已经进入 EH_QUIESCE、但尚未进入 reset work 时，晚到 fault 会先进入 pending queue，
-#   并在 `scsi_eh_queue_reset_work()` 中按 host scope 被吸收
-# - 关键同步方式：
-#   1. A/B/C 从起始时刻故障，把 sequence 推向 host scope
-#   2. 监听 `update_eh_field_to_host START`
-#   3. 只有在 host 已进入 EH_QUIESCE 后，才对 D 注入 fault
-# - 预期日志关键字：
+# Fault scenario:
+# - Functional validation group: 15_device_target_bus_host (all four reset handlers implemented: device / target / bus / host)
+# - Special case: S1, scope-matched absorb before reset
+# - Goal: Verify that after the host has entered EH_QUIESCE but before reset work starts, a late fault first enters the pending queue,
+#   and is absorbed at host scope in `scsi_eh_queue_reset_work()`
+# - Key synchronization method:
+#   1. A/B/C fail from the beginning and push the sequence toward host scope
+#   2. watch for `update_eh_field_to_host START`
+#   3. inject the fault into D only after the host has entered EH_QUIESCE
+# - Expected log keywords:
 #   1. enqueue pending fault ... action=may_be_absorbed_by_current_sequence
 #   2. absorb scope-matched pending faults before reset, level=EH_SHOST
 

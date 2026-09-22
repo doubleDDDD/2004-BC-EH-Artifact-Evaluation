@@ -1,20 +1,20 @@
 #!/bin/sh
 set -eu
 
-# 故障场景：
-# - 论文用例：P9，单一 channel 内共享故障
-# - 拓扑：complextopo（完整 2ch_2tgt_2lun，共 8 盘）
-# - 命名节点映射：A=<host_no>:0:0:0，B=<host_no>:0:0:1，C=<host_no>:0:1:0，D=<host_no>:1:0:0，E=<host_no>:1:1:0
-# - 补足 idle 节点：F=<host_no>:0:1:1，G=<host_no>:1:0:1，H=<host_no>:1:1:1
-# - active 节点：A、B、C、D
-# - idle 节点：E、F、G、H
-# - 实际对 A/B/C 注入故障；三者均位于故障 channel-0
-# - D 位于健康 channel-1，持续健康 I/O，用于证明 host 仍有前向进展
-# - 为确保传统 linux-eh 沿固定升级链推进到 bus reset，
-#   额外将 channel-0 下两个 target 的 target reset 都设为 fail
-# - 目标：
-#   验证同一单 channel 共享故障在传统 linux-eh 下会走到 bus/channel 级恢复
-# - 预期恢复链：D- -> T- -> B+
+# Fault scenario:
+# - Paper case: P9, single-channel shared fault
+# - Topology: complextopo (full 2ch_2tgt_2lun, 8 disks total)
+# - Named node mapping: A=<host_no>:0:0:0, B=<host_no>:0:0:1, C=<host_no>:0:1:0, D=<host_no>:1:0:0, E=<host_no>:1:1:0
+# - Additional idle nodes: F=<host_no>:0:1:1, G=<host_no>:1:0:1, H=<host_no>:1:1:1
+# - active nodes: A, B, C, D
+# - idle nodes: E, F, G, H
+# - Inject faults into A/B/C; all three are on faulty channel-0
+# - D is on healthy channel-1 and keeps issuing healthy I/O to show host-level forward progress
+# - To make native linux-eh follow the fixed escalation chain to bus reset,
+#   also mark target reset as failed for both targets under channel-0
+# - Goal:
+#   verify that the same single-channel shared fault reaches bus/channel-level recovery under native linux-eh
+# - Expected recovery chain: D- -> T- -> B+
 
 SCRIPT_DIR="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"
 # shellcheck source=/dev/null

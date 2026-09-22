@@ -1,6 +1,4 @@
 # TODO list
-1. 把 5 个镜像彻底准备利索，脚本的位置要调整好
-2. 思考镜像内部的git，是否要清理，之前的liunx直接移除，ubuntu img不动
 3. 很多开关参数都说清楚
 3. 中文的清理
 4. 最后考虑 FPL 的 bug 要不要 fix
@@ -222,9 +220,19 @@ cd ~/2004-BC-EH-Artifact-Evaluation/bc_eh_test/scsi_debug
 sudo sh basictopo/bc-eh/scsi_debug_P1_basictopo.sh
 ```
 
-The VM images already have the latest BC-EH kernel built and installed. The
-test scripts switch between Linux EH and BC-EH through the `eh_mode` interface
-inside the same kernel.
+The VM images already have the latest BC-EH kernel built and installed. A
+prepared VM should report the following kernel release:
+
+```bash
+uname -r
+```
+
+```text
+6.18.0-bceh
+```
+
+The test scripts switch between Linux EH and BC-EH through the `eh_mode`
+interface inside the same kernel.
 
 This single `basictopo` case is intended only as a quick sanity check. Broader
 test suites are listed in the experiment sections below. The foreground output
@@ -494,9 +502,10 @@ The detailed Kafka JBOD guide is
 ## Optional: Kernel Build and Installation Inside the VM
 
 The provided Ubuntu VM images already have the latest BC-EH kernel built and
-installed. Evaluators can boot the VM images and run the test scripts directly.
-Rebuilding the kernel is only needed when modifying the kernel source or when
-checking the build process from source.
+installed. A prepared VM should boot into `6.18.0-bceh`. Evaluators can boot
+the VM images and run the test scripts directly. Rebuilding the kernel is only
+needed when modifying the kernel source or when checking the build process
+from source.
 
 `atclinux/` already includes the intended `.config` file. When rebuilding
 inside the provided VM, the kernel configuration does not need to be changed.
@@ -512,12 +521,16 @@ cd ~/2004-BC-EH-Artifact-Evaluation/atclinux
 # Optional: run only if the kernel tree asks for new config options.
 # make olddefconfig
 
-# Build the kernel image and modules.
-make -j"$(nproc)"
+# Build the kernel image and modules with a stable AE-local kernel release.
+make LOCALVERSION=-bceh -j"$(nproc)"
 
 # Install the modules and kernel image into the VM.
-sudo make modules_install
-sudo make install
+sudo make LOCALVERSION=-bceh modules_install
+sudo make LOCALVERSION=-bceh install
+
+# Make GRUB boot the installed BC-EH kernel by default.
+sudo grep -n "menuentry 'Ubuntu, with Linux 6.18.0-bceh" /boot/grub/grub.cfg
+sudo sed -i 's|^GRUB_DEFAULT=.*|GRUB_DEFAULT="Advanced options for Ubuntu>Ubuntu, with Linux 6.18.0-bceh"|' /etc/default/grub
 sudo update-grub
 
 # Shut down the VM, then restart it from the host with the Makefile target.
@@ -532,6 +545,12 @@ uname -r
 sudo modprobe scsi_debug
 lsmod | grep scsi_debug
 sudo modprobe -r scsi_debug
+```
+
+The expected `uname -r` output is:
+
+```text
+6.18.0-bceh
 ```
 
 After `modprobe scsi_debug` succeeds, the test scripts under

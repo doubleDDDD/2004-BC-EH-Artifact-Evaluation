@@ -1,20 +1,20 @@
 #!/bin/sh
 set -eu
 
-# 故障场景：
-# - 功能验证分组：15_device_target_bus_host（device / target / bus / host 四级 reset handler 全实现）
-# - 独特用例：M1，stable multi-sequence restart
-# - 目标：稳定验证“第一条 sequence 已进入 reset phase，不再接受 pending fault，
-#   之后新的 fault 只能等待前一条 sequence 结束，再由 pending fault 重启第二条 sequence”
-# - 关键同步方式：
-#   1. 先让 A/B/C 把第一条 sequence 推到 bus reset
-#   2. 监听内核日志中 `scsi_eh_schannel_reset: schannel(<host_no>:0) RESET!`
-#   3. 只有在看到该日志后，才对 D 延迟注入 fault
-# - 预期日志关键字：
+# Fault scenario:
+# - Functional validation group: 15_device_target_bus_host (all four reset handlers implemented: device / target / bus / host)
+# - Special case: M1, stable multi-sequence restart
+# - Goal: reliably verify that the first sequence has entered reset phase and no longer accepts pending faults,
+#   later faults must wait for the previous sequence to finish, then restart a second sequence from pending faults"
+# - Key synchronization method:
+#   1. first let A/B/C drive the first sequence to bus reset
+#   2. watch for this kernel log message `scsi_eh_schannel_reset: schannel(<host_no>:0) RESET!`
+#   3. inject the delayed fault into D only after seeing this log
+# - Expected log keywords:
 #   1. enqueue pending fault ... action=wait_next_sequence
 #   2. scsi_eh_finish_work_sequence: sdev(...) restart EH from pending fault
-# - 说明：
-#   本用例的重点是“稳定制造多 sequence”，不是验证第二条 sequence 最终停在哪一级 reset
+# - Note:
+#   this case focuses on reliably creating multiple sequences, not on fixing the final reset level of the second sequence
 
 SCRIPT_DIR="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"
 # shellcheck source=/dev/null
@@ -95,8 +95,8 @@ main()
     C_block="$(bc_eh_wait_block_device "${C_scsi_id}" "${SDEBUG_WAIT_SECS:-15}")" || bc_eh_die "failed to find block for C"
     D_block="$(bc_eh_wait_block_device "${D_scsi_id}" "${SDEBUG_WAIT_SECS:-15}")" || bc_eh_die "failed to find block for D"
 
-    # 在第一条 bus reset 的 TUR 收尾期故意拖住一个设备，扩大 reset phase 窗口，
-    # 让后续 D 的 fault 稳定落在 `accepting_pending=0` 的阶段。
+    # intentionally hold one device during the TUR tail of the first bus reset to widen the reset-phase window,
+    # make the later fault on D reliably land in the `accepting_pending=0` stage.
     bc_eh_apply_validate_after_reset "${A_scsi_id}" "bus timeout 1"
     bc_eh_apply_error_rules "${A_scsi_id}" "${BC_EH_RULE_IO_TIMEOUT_ABORT}"
     bc_eh_apply_error_rules "${B_scsi_id}" "${BC_EH_RULE_IO_TIMEOUT_ABORT}"
@@ -121,7 +121,7 @@ main()
         printf 'D=%s /dev/%s\n' "${D_scsi_id}" "${D_block}"
     } > "${RUN_DIR}/metadata"
 
-    # 清空旧 ring buffer，只保留本次测试产生的内核日志，便于稳定同步 reset phase。
+    # clear the old ring buffer and keep only kernel logs from this test, making reset-phase synchronization stable.
     dmesg -c >/dev/null 2>&1 || true
     dmesg -w > "${kmsg_log}" &
     KMSG_PID=$!

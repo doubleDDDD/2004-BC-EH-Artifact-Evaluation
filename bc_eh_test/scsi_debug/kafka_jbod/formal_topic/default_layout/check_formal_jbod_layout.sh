@@ -146,7 +146,7 @@ for broker in brokers:
         per_broker[broker_id][log_dir_path] = sorted(replicas)
 
 print(f"Topic: {topic_name}")
-print("正式 topic 在各 broker / log.dir 上的布局如下:")
+print("Formal topic layout across brokers / log.dirs:")
 
 target_summary = {}
 sibling_total_leaders = 0
@@ -158,8 +158,8 @@ for broker_id in sorted(per_broker):
         partitions = per_logdir[log_dir]
         leaders = [p for p in partitions if leader_by_partition.get(p) == broker_id]
         print(f"  {log_dir}")
-        print(f"    分区副本数: {len(partitions)}")
-        print(f"    leader 分区数: {len(leaders)}")
+        print(f"    replica count: {len(partitions)}")
+        print(f"    leader partition count: {len(leaders)}")
         if partitions:
             print(f"    partitions: {', '.join(partitions)}")
         if leaders:
@@ -203,10 +203,10 @@ if sibling_total_leaders <= 0:
         "the experiment is still runnable, but the healthy-sibling comparison will be weaker"
     )
 
-print("布局判定: 通过")
+print("Layout check: PASS")
 print(
-    f"结论: broker {target_broker} 的目标故障 log.dir {target_log_dir} 上已有 {target_partitions} 个分区副本、"
-    f"{target_leaders} 个 leader 分区，可作为第一轮单盘故障目标"
+    f"Conclusion: broker {target_broker} target fault log.dir {target_log_dir} has {target_partitions} partition replicas,"
+    f" {target_leaders} leader partitions, and can be used as the first-round single-disk fault target"
 )
 PY
 

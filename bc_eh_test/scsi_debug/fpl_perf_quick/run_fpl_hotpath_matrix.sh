@@ -1,14 +1,14 @@
 #!/bin/sh
 set -eu
 
-# 快速版矩阵入口：
-# - 原始结果写入当前目录 fpl_raw_results.csv
-# - 默认 repeats=1
-# - 默认 runtime=5s
-# - 默认 warmup=0
-# - 默认仍覆盖 host/sdev x 1/2/4/8/16 x 8 workloads
+# Quick matrix entry:
+# - raw results are written to fpl_raw_results.csv in the current directory
+# - defaults to repeats=1
+# - defaults to runtime=5s
+# - defaults to warmup=0
+# - still covers host/sdev x 1/2/4/8/16 x 8 workloads by default
 #
-# 可通过环境变量进一步裁剪：
+# Further reduction is available through environment variables:
 #   BC_EH_FPL_ACTIVE_DISKS_LIST="1 4 16"
 #   BC_EH_FPL_WORKLOAD_LIST="randread_4k randread_256k randwrite_4k randwrite_256k"
 #   sh run_fpl_hotpath_matrix.sh

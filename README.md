@@ -188,7 +188,7 @@ The GitHub repository does not track large disk images. Download the VM image
 archive from:
 
 ```text
-<VM_IMAGE_ARCHIVE_URL>
+http://47.251.160.208/
 ```
 
 Download the following files and place them in the artifact root directory:

@@ -185,7 +185,7 @@ used by the Kafka JBOD scripts.
 ## Download and Place VM Images
 
 The GitHub repository does not track large disk images. Download the VM image
-archive from:
+archive from the following public HTTP directory:
 
 ```text
 http://47.251.160.208/

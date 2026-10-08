@@ -475,9 +475,16 @@ Here `basictopo/` corresponds to Topology A, and `complextopo/` corresponds to
 Topology B. Each directory contains both `linux-eh/` and `bc-eh/` cases for
 P1-P9.
 
-These scripts record per-case metadata under `/tmp/bc_eh_test/scsi_debug/`.
-The recovery-latency values used for Figure 10 are extracted from the kernel
-log.
+These scripts record per-case metadata under:
+
+```bash
+/tmp/bc_eh_test/scsi_debug/<basictopo|complextopo>/<linux-eh|bc-eh>/P*/
+```
+
+Each `metadata` file records the case ID, topology, EH profile, selected
+`eh_mode`, active devices, and injected fault rules for that run. The
+recovery-latency values used for Figure 10 are extracted from the kernel log
+timeline for the corresponding P1-P9 run.
 
 <br>
 
@@ -493,8 +500,14 @@ sudo sh sequence_cases/linux-eh/scsi_debug_staggered_independent_sdev_convoy_8ta
 sudo sh sequence_cases/bc-eh/scsi_debug_staggered_independent_sdev_convoy_8targets.sh
 ```
 
+The scripts record metadata under:
+
+```bash
+/tmp/bc_eh_test/scsi_debug/sequence_cases/<linux-eh|bc-eh>/
+```
+
 The recovery-latency values used for Figure 11 are extracted from the kernel
-log.
+log timeline for the corresponding Linux EH and BC-EH sequence runs.
 
 <br>
 
@@ -517,6 +530,12 @@ bc_eh_test/scsi_debug/checkpoint_perf/checkpoint_summary.md
 bc_eh_test/scsi_debug/checkpoint_perf/checkpoint_raw_results.csv
 ```
 
+Use `checkpoint_summary.md` for the human-readable result table. The raw CSV
+contains the same measurements; the main fields are
+`ns_per_invocation_median`, `ns_per_invocation_p95`,
+`ns_per_visited_node_median`, `ns_per_visited_node_p95`, and
+`visited_nodes_per_invocation`.
+
 <br>
 
 ### 5.5 FPL Hot-Path Overhead
@@ -536,6 +555,11 @@ The full FPL matrix writes raw results to:
 ```bash
 bc_eh_test/scsi_debug/fpl_perf_real/fpl_raw_results.csv
 ```
+
+The CSV columns identify the EH mode, workload, and measured performance:
+`eh_mode`, `active_sdev`, `rw`, `bs`, `repeat`, `iops`, `avg_clat_us`, and
+`p99_clat_us`. Figure 12 is derived by comparing the Linux EH `host` rows and
+the BC-EH `sdev` rows for the same active-sdev count and workload.
 
 For a shorter smoke run of the same matrix structure, use:
 

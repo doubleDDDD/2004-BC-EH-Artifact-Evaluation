@@ -1,57 +1,18 @@
 # 2004-BC-EH-Artifact-Evaluation
 
-## Artifact Contents
+## 1. Artifact Contents
 
-```text
+```bash
 BC-EH Artifact
-├── GitHub repository
-│   ├── atclinux/       Linux v6.18 + BC-EH source
-│   ├── bc_eh_test/     test, VM setup, and experiment scripts
-│   ├── Makefile        host-side QEMU experiment launcher
-│   └── README.md
-└── External VM image archive
-    ├── ubuntu20046_x86_64.img.zst   compressed shared Ubuntu backing image
-    ├── iscsi.qcow2                  iSCSI/scsi_debug overlay
-    └── kafka*.qcow2                 Kafka broker/client overlays
-
-Main AE runtime paths
-├── scsi_debug functional/recovery tests in Ubuntu VM
-├── iscsi_tcp tests with host target + Ubuntu VM (initiator)
-└── Kafka JBOD tests across four Ubuntu VMs
-
-Performance/build paths
-├── scsi_debug FPL hot-path tests in Ubuntu VM or on bare metal
-│   └── paper numbers were collected on bare metal
-└── optional rebuild and install of the BC-EH kernel inside a VM or on bare metal
+├── atclinux/       Linux v6.18 + BC-EH source
+├── bc_eh_test/     test, VM setup, and experiment scripts
+├── Makefile        host-side QEMU experiment launcher
+└── README.md
 ```
 
-This artifact is split into a GitHub repository and externally hosted VM disk
-images. The GitHub repository contains the source code, test scripts, VM setup
-helpers, host-side QEMU experiment launcher, and documentation. The large VM
-image files are not tracked by Git; they should be downloaded from the VM image
-archive and placed in the artifact root directory next to `Makefile`.
+This artifact is distributed as a Zenodo archive containing an archival snapshot of the BC-EH source repository, including the kernel source, experiment scripts, setup helpers, and documentation.
 
-The Ubuntu base image is the shared backing image for the iSCSI and Kafka
-`.qcow2` overlays. It must remain unchanged and must be kept at the expected
-relative path. Evaluators should boot the overlay images rather than modifying
-or booting the base image directly.
-
-After the VM image files are placed in the artifact root, the expected
-top-level layout is:
-
-```text
-2004-BC-EH-Artifact-Evaluation/
-├── atclinux/
-├── bc_eh_test/
-├── Makefile
-├── README.md
-├── ubuntu20046_x86_64.img
-├── iscsi.qcow2
-├── kafka1-os.qcow2
-├── kafka2-os.qcow2
-├── kafka3-os.qcow2
-└── kafka-client-os.qcow2
-```
+Evaluators can run the experiments on QEMU/KVM virtual machines or on physical machines. Nodes running the BC-EH SCSI experiments must boot the BC-EH kernel, and each node should have the dependencies required for its experiment role, such as fio, open-iscsi, targetcli, Java, or Kafka.
 
 - `atclinux/`
   Linux v6.18 source tree with the BC-EH kernel changes and the provided
@@ -59,13 +20,13 @@ top-level layout is:
   `Kernel Source Overview` section.
 
 - `bc_eh_test/`
-  Test, VM setup, and experiment scripts. It contains the `scsi_debug` tests,
+  Test, runtime setup, and experiment scripts. It contains the `scsi_debug` tests,
   the `LLDD/iscsi_tcp` software iSCSI test scripts, and small host-side setup
-  helpers used by the VM experiments.
+  helpers used by the runtime experiments.
 
 The `bc_eh_test/` directory is organized as:
 
-```text
+```bash
 bc_eh_test/
 ├── LLDD/
 │   └── iscsi_tcp/
@@ -82,25 +43,13 @@ bc_eh_test/
   use the installed kernel module through `modprobe scsi_debug`.
 
 - `Makefile`
-  Host-side QEMU experiment launcher for the iSCSI VM and the Kafka VMs,
-  including disk-overlay, networking, SSH forwarding, and VM topology
-  parameters.
-
-- `ubuntu20046_x86_64.img`
-  Externally provided Ubuntu 20.04.6 base image. It is the shared backing image
-  for the VM overlays. Keep it unchanged and keep it next to the overlays.
-
-- `iscsi.qcow2`
-  Externally provided Ubuntu VM overlay used for the iSCSI experiments and for
-  running standalone `scsi_debug` AE tests.
-
-- `kafka1-os.qcow2`, `kafka2-os.qcow2`, `kafka3-os.qcow2`,
-  `kafka-client-os.qcow2`
-  Externally provided Ubuntu VM overlays for the Kafka JBOD experiment.
+  Optional host-side QEMU launcher examples for VM-based iSCSI and Kafka
+  experiments, including disk-overlay, networking, SSH forwarding, and VM
+  topology parameters.
 
 The `bc_eh_test/scsi_debug/` directory contains:
 
-```text
+```bash
 bc_eh_test/scsi_debug/
 ├── scsi_debug_common.sh
 ├── scsi_debug_case.sh
@@ -151,20 +100,20 @@ bc_eh_test/scsi_debug/
   Full FPL hot-path overhead matrix used for longer measurements.
 
 - `kafka_jbod/`
-  Guest-side Kafka JBOD setup, cleanup, layout validation, workload, and
-  fault-injection scripts using `scsi_debug`-backed data disks.
+  Kafka JBOD setup, cleanup, layout validation, workload, and fault-injection
+  scripts using `scsi_debug`-backed data disks.
 
 <br>
 
-## Requirements
+## 2. Requirements
 
-The host machine should provide:
+For QEMU/KVM deployments, the host machine should provide:
 
 - Linux with KVM support enabled.
 - `qemu-system-x86_64`, `make`, `ssh`, and standard networking tools from
   `iproute2`.
-- Enough memory for the selected VM target. The Kafka target starts three
-  8 GiB broker VMs and one 4 GiB client VM.
+- Enough memory for the selected QEMU/KVM target. The Kafka QEMU/KVM setup
+  starts three 8 GiB broker VMs and one 4 GiB client VM.
 - For the iSCSI experiment, the host additionally needs `targetcli` and root
   permission to create the `br-iscsi` bridge, the `tap-iscsi0` tap device, and
   the Linux LIO file-backed target. The setup scripts also use the standard
@@ -176,156 +125,328 @@ The host machine should provide:
 - The QEMU process that starts `make iscsi` must have permission to attach to
   `tap-iscsi0`.
 
-The provided Ubuntu VM images already contain the runtime tools used by the AE
-scripts, including `fio`, `iscsiadm` from `open-iscsi`, and the Kafka runtime
-used by the Kafka JBOD scripts.
+<br>
+
+## 3. Prepare Runtime Environments
+
+### 3.1 Prepare a Base Linux System
+
+Prepare Ubuntu 20.04.6 LTS or a compatible Linux system for each experiment node. Ubuntu 20.04.6 LTS images are available from the official Ubuntu releases page: https://releases.ubuntu.com/20.04/. For a QEMU/KVM deployment, we recommend starting from an installer ISO: create a qcow2 system disk first, then install Ubuntu into it. For a physical-machine deployment, prepare clean machines in
+the same way.
+
+Install the common tools needed by the artifact, including kernel build dependencies, QEMU utilities if VMs are used, `fio`, `open-iscsi`, `targetcli-fb`, and Java. Kafka is only needed for the Kafka JBOD experiment.
+
+For the Kafka JBOD experiment, Apache Kafka 4.2.0 is required on all Kafka nodes: `kafka-1`, `kafka-2`, `kafka-3`, and `kafka-client`. The artifact scripts assume the Kafka directory is `/root/kafka_2.13-4.2.0`; keep this path when installing Kafka, or update the Kafka script variables consistently if a different path is used. In a QEMU/KVM deployment, if the Kafka broker/client images are derived from the same prepared base image, installing Kafka in that base image avoids repeating the installation in each Kafka image.
+
+Kafka installation references:
+- Apache Kafka downloads: https://kafka.apache.org/downloads
+- Apache Kafka quick start: https://kafka.apache.org/quickstart
+
+The commands below assume that the evaluator logs into the experiment nodes as `root` and places the extracted artifact directory under the
+root home directory, for example `/root/2004-BC-EH-Artifact-Evaluation`. If a different user or path is used, replace the `~/2004-BC-EH-Artifact-Evaluation` paths consistently in the commands.
 
 <br>
 
-## Download and Place VM Images
+### 3.2 Build and Install the BC-EH Kernel
 
-The GitHub repository does not track large disk images. Download the VM image
-archive from the following public HTTP directory:
+Nodes that run the BC-EH SCSI experiments must boot the BC-EH kernel before executing the artifact scripts. The `atclinux/` directory already includes the intended `.config` file. For QEMU/KVM deployments, build and install the kernel inside the base VM image used for the scsi_debug, iSCSI initiator, and Kafka broker nodes. For physical-machine deployments, install the kernel on the corresponding experiment machines, and re-check machine-specific options such as the boot disk, network adapter, filesystem, and storage-controller drivers.
 
-```text
-http://47.251.160.208/
-```
+For kernel build and installation guidance, refer to the upstream Linux kernel build/install guide:
+https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/Documentation/admin-guide/quickly-build-trimmed-linux.rst
 
-Download the following files and place them in the artifact root directory:
-
-```text
-ubuntu20046_x86_64.img.zst
-iscsi.qcow2
-kafka1-os.qcow2
-kafka2-os.qcow2
-kafka3-os.qcow2
-kafka-client-os.qcow2
-SHA256SUMS
-```
-
-The Ubuntu base image is compressed to reduce the external archive size. After
-downloading the files, verify the downloaded archive if desired, then
-decompress it:
+Run the following commands on each node that requires the BC-EH kernel, or on the corresponding base VM image:
 
 ```bash
-sha256sum ubuntu20046_x86_64.img.zst
-zstd -d ubuntu20046_x86_64.img.zst
+cd ~/2004-BC-EH-Artifact-Evaluation/atclinux
+
+# Optional: run only if the kernel tree asks for new config options.
+# make olddefconfig
+
+# Build the kernel image and modules with a stable AE-local kernel release.
+make LOCALVERSION=-bceh -j"$(nproc)"
+
+# Install the modules and kernel image.
+sudo make LOCALVERSION=-bceh modules_install
+sudo make LOCALVERSION=-bceh install
+
+# Make GRUB boot the installed BC-EH kernel by default.
+# Check the exact GRUB menu entry first; adjust GRUB_DEFAULT if the menu name differs.
+sudo grep -n "menuentry 'Ubuntu, with Linux 6.18.0-bceh" /boot/grub/grub.cfg
+sudo sed -i 's|^GRUB_DEFAULT=.*|GRUB_DEFAULT="Advanced options for Ubuntu>Ubuntu, with Linux 6.18.0-bceh"|' /etc/default/grub
+sudo update-grub
+
+# Reboot the node.
+sudo reboot
 ```
 
-This produces:
+After rebooting, check the running kernel and the `scsi_debug` module:
 
-```text
-ubuntu20046_x86_64.img
+```bash
+uname -r
+sudo modprobe scsi_debug
+lsmod | grep scsi_debug
+sudo modprobe -r scsi_debug
 ```
 
-The `*.qcow2` files are overlay images whose backing file is
-`./ubuntu20046_x86_64.img`. Keep the base image and overlays in the same
-directory as `Makefile`, and do not rename the base image unless the backing
-file reference is updated accordingly. The normal AE workflow boots the overlay
-images; the base image should be treated as read-only backing storage.
+The expected `uname -r` output is:
+
+```bash
+6.18.0-bceh
+```
+
+After `modprobe scsi_debug` succeeds, the test scripts under
+`bc_eh_test/scsi_debug/` can be executed. Linux EH and BC-EH are selected
+through the `eh_mode` interface in the same BC-EH kernel; two separate kernels
+are not required.
 
 <br>
 
-## Quick Start
+### 3.3 Create QEMU/KVM Runtime Images
 
-The easiest first validation path is to use the `iscsi.qcow2` overlay as a
-regular Ubuntu VM for `scsi_debug` tests. We use `iscsi.qcow2` here because it
-is the VM image most commonly used during development; any provided Ubuntu
-overlay image can be used for these tests.
+This step is only needed for QEMU/KVM deployments. Starting from the prepared base image, create one qcow2 image for the standalone `scsi_debug` and `iscsi_tcp` experiments, and four qcow2 images for the Kafka JBOD experiment:
 
 ```bash
-cd 2004-BC-EH-Artifact-Evaluation
+cd ~/2004-BC-EH-Artifact-Evaluation
 
+qemu-img create -f qcow2 -F qcow2 -b ubuntu20046_x86_64.img iscsi.qcow2
+qemu-img create -f qcow2 -F qcow2 -b ubuntu20046_x86_64.img kafka1-os.qcow2
+qemu-img create -f qcow2 -F qcow2 -b ubuntu20046_x86_64.img kafka2-os.qcow2
+qemu-img create -f qcow2 -F qcow2 -b ubuntu20046_x86_64.img kafka3-os.qcow2
+qemu-img create -f qcow2 -F qcow2 -b ubuntu20046_x86_64.img kafka-client-os.qcow2
+```
+
+The provided `Makefile` expects these image names in the artifact root directory. If the image names or paths are changed, update the corresponding `-drive file=...` entries in `Makefile`.
+
+After creating the images, one convenient QEMU/KVM layout is:
+
+```bash
+2004-BC-EH-Artifact-Evaluation/
+├── atclinux/
+├── bc_eh_test/
+├── Makefile
+├── README.md
+├── ubuntu20046_x86_64.img     # QEMU/KVM only: prepared base image
+├── iscsi.qcow2                # QEMU/KVM only: scsi_debug/iSCSI test VM   
+├── kafka1-os.qcow2            # QEMU/KVM only: Kafka broker 1
+├── kafka2-os.qcow2            # QEMU/KVM only: Kafka broker 2
+├── kafka3-os.qcow2            # QEMU/KVM only: Kafka broker 3
+└── kafka-client-os.qcow2      # QEMU/KVM only: Kafka workload client
+```
+
+Physical-machine deployments can prepare the corresponding machines directly.
+
+<br>
+
+### 3.4 Prepare the scsi_debug Test Node
+
+The `scsi_debug` test node is used for the standalone `scsi_debug` functional, recovery-latency, checkpoint, and FPL experiments. The node
+must have the artifact repository, the BC-EH kernel, `fio`, and a loadable `scsi_debug` kernel module.
+
+For QEMU/KVM deployments, this node can use `iscsi.qcow2`. The provided `Makefile` starts this VM with the `make iscsi` target, exposes SSH through the QEMU user-mode management network on host port `2210`, and attaches the `tap-iscsi0` interface. Create `tap-iscsi0` with the host-side network setup in `Prepare the iSCSI Experiment Environment` before starting this target:
+
+```bash
+cd ~/2004-BC-EH-Artifact-Evaluation
 make iscsi
 ssh -p 2210 root@127.0.0.1
 ```
 
-Inside the VM, clone or use the already available copy of the artifact
-repository:
+For physical-machine deployments, prepare one machine with the same software environment.
+
+Check the node before running the `scsi_debug` experiment scripts:
 
 ```bash
-git clone https://github.com/doubleDDDD/2004-BC-EH-Artifact-Evaluation.git
-cd ~/2004-BC-EH-Artifact-Evaluation/bc_eh_test/scsi_debug
+cd ~/2004-BC-EH-Artifact-Evaluation
 
-sudo sh basictopo/bc-eh/scsi_debug_P1_basictopo.sh
-```
-
-The VM images already have the latest BC-EH kernel built and installed. A
-prepared VM should report the following kernel release:
-
-```bash
 uname -r
+fio --version
+
+sudo modprobe scsi_debug
+lsmod | grep scsi_debug
+sudo modprobe -r scsi_debug
 ```
 
-```text
+The expected kernel release is:
+
+```bash
 6.18.0-bceh
 ```
 
-The test scripts switch between Linux EH and BC-EH through the `eh_mode`
-interface inside the same kernel.
-
-This single `basictopo` case is intended only as a quick sanity check. Broader
-test suites are listed in the experiment sections below. The foreground output
-mainly comes from `fio`; opening another SSH terminal and watching `dmesg` can
-make the recovery progress easier to observe.
+After these checks pass, the node is ready for the scripts under `bc_eh_test/scsi_debug/`.
 
 <br>
 
-## VM Startup and SSH Login
+### 3.5 Prepare the iSCSI Experiment Environment
 
-Run the QEMU targets from the artifact root directory. The `make kafka` target
-starts all Kafka-related VMs: `kafka-1`, `kafka-2`, `kafka-3`, and
-`kafka-client`.
+The iSCSI experiment uses two roles: a host-side Linux LIO target and an initiator node running the BC-EH kernel. For QEMU/KVM deployments, the initiator node is `iscsi.qcow2`, started by the `make iscsi` target in the provided `Makefile`. In this QEMU/KVM setup, the initiator VM connects to the host-side target through the `tap-iscsi0` interface.
+
+On the target side, install `targetcli-fb` and choose an unused private host-guest portal address. Use the same `BC_EH_ISCSI_PORTAL_IP`
+value on the target side and inside the initiator node. The setup scripts create the host-side bridge/tap network and the file-backed iSCSI
+target used by the experiment.
 
 ```bash
-make iscsi
+cd ~/2004-BC-EH-Artifact-Evaluation
+
+export BC_EH_ISCSI_PORTAL_IP=<host-private-ip>
+
+sudo bash bc_eh_test/LLDD/iscsi_tcp/destroy_host.sh
+sudo bash bc_eh_test/LLDD/iscsi_tcp/net_cleanup.sh
+
+sudo -E bash bc_eh_test/LLDD/iscsi_tcp/net_ready.sh
+sudo -E bash bc_eh_test/LLDD/iscsi_tcp/create_host.sh
+```
+
+For QEMU/KVM deployments, start the initiator VM after the target side is ready:
+
+```bash
+sudo make iscsi
+ssh -p 2210 root@127.0.0.1
+```
+
+Inside the initiator node, install `open-iscsi`, boot the BC-EH kernel, keep the artifact repository available, and use the same
+`BC_EH_ISCSI_PORTAL_IP` value when running the iSCSI scripts.
+
+For physical-machine deployments, prepare one target machine and one initiator machine with the same software roles. The expected target and
+initiator state is described in the `Expected iSCSI Setup State` section below.
+
+#### 3.5.1 Expected iSCSI Setup State
+
+The iSCSI target uses file-backed LUNs on the host; it does not require a
+physical disk or a hardware storage controller.
+
+After `net_ready.sh` and `create_host.sh` complete on the host, the host should
+have:
+
+```bash
+host network:   br-iscsi up, with <host-private-ip>/24 assigned
+tap device:     tap-iscsi0 attached to br-iscsi
+target IQN:     iqn.2026-06.com.bc-eh:target0
+initiator IQN:  iqn.2026-06.com.bc-eh:iscsi-vm
+portal:         <host-private-ip>:3260
+backstore type: targetcli fileio
+LUN 0:          /var/lib/bc-eh-iscsi/lun0.img, 4 GiB
+LUN 1:          /var/lib/bc-eh-iscsi/lun1.img, 4 GiB
+```
+
+Useful host-side checks are:
+
+```bash
+ip -4 addr show br-iscsi
+ip link show tap-iscsi0
+sudo targetcli /iscsi/iqn.2026-06.com.bc-eh:target0/tpg1 ls
+sudo ls -lh /var/lib/bc-eh-iscsi/lun*.img
+```
+
+Inside the initiator node, use the same portal IP. The optional connectivity check
+below logs in to the target and should show one `iscsi_tcp` host plus two iSCSI
+LUNs:
+
+```bash
+cd ~/2004-BC-EH-Artifact-Evaluation/bc_eh_test/LLDD/iscsi_tcp
+
+export BC_EH_ISCSI_PORTAL_IP=<host-private-ip>
+
+sudo -E sh guest_connect.sh
+iscsiadm -m session
+ls -l /dev/disk/by-path | grep iscsi
+```
+
+The expected result is that `guest_connect.sh` exits successfully,
+`iscsiadm -m session` shows a session to
+`iqn.2026-06.com.bc-eh:target0` at `<host-private-ip>:3260`, and
+`/dev/disk/by-path` contains two iSCSI LUN links:
+
+```bash
+ip-<host-private-ip>:3260-iscsi-iqn.2026-06.com.bc-eh:target0-lun-0
+ip-<host-private-ip>:3260-iscsi-iqn.2026-06.com.bc-eh:target0-lun-1
+```
+<br>
+
+### 3.6 Prepare the Kafka JBOD Environment
+
+The Kafka JBOD experiment uses three broker nodes and one workload client node. For QEMU/KVM deployments, the provided `Makefile` uses
+`kafka1-os.qcow2`, `kafka2-os.qcow2`, `kafka3-os.qcow2`, and `kafka-client-os.qcow2`, and starts them with the `make kafka` target.
+
+Each Kafka broker node must boot the BC-EH kernel, keep the artifact repository available, have Java and Kafka installed at `/root/kafka_2.13-4.2.0`, and be able to load the `scsi_debug` module. The workload client node must also have Java, Kafka installed at `/root/kafka_2.13-4.2.0`, and the artifact repository available.
+
+The default QEMU/KVM Kafka topology uses a management network for SSH and a separate cluster network for Kafka traffic. The Kafka scripts
+assume the cluster interface is `enp0s3` by default, with the following addresses:
+
+```bash
+kafka-1:       10.20.0.11/24
+kafka-2:       10.20.0.12/24
+kafka-3:       10.20.0.13/24
+kafka-client:  10.20.0.21/24
+```
+
+For QEMU/KVM deployments, start the Kafka nodes from the artifact root:
+
+```bash
+cd ~/2004-BC-EH-Artifact-Evaluation
 make kafka
 ```
 
-Individual Kafka VMs can also be started separately:
+The `Makefile` exposes SSH on the following host ports:
 
 ```bash
-make kafka1
-make kafka2
-make kafka3
-make kafka-client
+kafka-1:       ssh -p 2201 root@127.0.0.1
+kafka-2:       ssh -p 2202 root@127.0.0.1
+kafka-3:       ssh -p 2203 root@127.0.0.1
+kafka-client:  ssh -p 2204 root@127.0.0.1
 ```
 
-The host SSH forwarding ports are:
-
-```text
-iscsi-vm      127.0.0.1:2210
-kafka-1       127.0.0.1:2201
-kafka-2       127.0.0.1:2202
-kafka-3       127.0.0.1:2203
-kafka-client  127.0.0.1:2204
-```
-
-Example SSH commands:
+After logging into each Kafka node, check the expected runtime components:
 
 ```bash
-ssh -p 2210 root@127.0.0.1   # iscsi-vm
-ssh -p 2201 root@127.0.0.1   # kafka-1
-ssh -p 2202 root@127.0.0.1   # kafka-2
-ssh -p 2203 root@127.0.0.1   # kafka-3
-ssh -p 2204 root@127.0.0.1   # kafka-client
+cd ~/2004-BC-EH-Artifact-Evaluation
+
+ip -4 addr show enp0s3
+/root/kafka_2.13-4.2.0/bin/kafka-storage.sh version
 ```
 
-If a prepared image uses a non-root account, replace `root` with that account
-name.
+On each broker node, also check the BC-EH kernel and `scsi_debug` module:
+
+```bash
+uname -r
+sudo modprobe scsi_debug
+lsmod | grep scsi_debug
+sudo modprobe -r scsi_debug
+```
+
+For physical-machine deployments, prepare three broker machines and one workload client machine with the same software roles and cluster-network addresses. The Kafka baseline setup, topic preparation, workload execution, and fault injection are described later in the `Run Kafka JBOD Experiments` section.
 
 <br>
 
-## Run scsi_debug Experiments
+## 4. Run a Smoke Test
 
-Run these commands inside a prepared Ubuntu guest after entering the cloned
-artifact repository. The `scsi_debug` experiments are exposed as separate
-entries so that each paper-mapped experiment can be run and inspected
-independently.
+This section assumes that the runtime environments have already been prepared as described above. The shortest sanity check is to run one `scsi_debug` case on the prepared `scsi_debug` test node.
+
+For QEMU/KVM deployments, log into the `iscsi.qcow2` node as described in `Prepare the scsi_debug Test Node`. For physical-machine deployments, run the same commands on the prepared `scsi_debug` machine.
+
+```bash
+cd ~/2004-BC-EH-Artifact-Evaluation/bc_eh_test/scsi_debug
+
+uname -r
+sudo sh basictopo/bc-eh/scsi_debug_P1_basictopo.sh
+```
+
+The expected kernel release is:
+
+```bash
+6.18.0-bceh
+```
+
+This single `basictopo` case is intended only as a quick sanity check. Broader test suites are listed in the experiment sections below. The foreground output mainly comes from `fio`; opening another terminal and watching `dmesg` can make the recovery progress easier to observe.
 
 <br>
 
-### Functional Validation
+## 5. Run scsi_debug Experiments
+
+Run the `scsi_debug` experiments on the prepared `scsi_debug` test node from the artifact directory. The experiments are exposed as 
+separate entries so that each paper-mapped experiment can be run and inspected independently.
+
+<br>
+
+### 5.1 Functional Validation
 
 ```bash
 cd ~/2004-BC-EH-Artifact-Evaluation/bc_eh_test/scsi_debug
@@ -338,7 +459,7 @@ paper.
 
 <br>
 
-### Recovery Latency
+### 5.2 Recovery Latency
 
 This experiment corresponds to Figure 10 in the paper. It compares SCSI EH and
 BC-EH recovery latency across Topology A (no siblings) and Topology B (with
@@ -360,7 +481,7 @@ log.
 
 <br>
 
-### Multi-Fault Sequence Cases
+### 5.3 Multi-Fault Sequence Cases
 
 This experiment corresponds to Figure 11 in the paper. It evaluates the
 worst-case multi-fault convoy recovery latency under 8 independent sdev-local
@@ -377,7 +498,7 @@ log.
 
 <br>
 
-### Checkpoint Traversal Overhead
+### 5.4 Checkpoint Traversal Overhead
 
 This experiment corresponds to the checkpoint traversal overhead reported in
 Section 4.2.3, Overhead Characterization. It measures the checkpoint traversal
@@ -391,14 +512,14 @@ sudo sh run_matrix.sh
 
 The script writes the summary and raw results to:
 
-```text
+```bash
 bc_eh_test/scsi_debug/checkpoint_perf/checkpoint_summary.md
 bc_eh_test/scsi_debug/checkpoint_perf/checkpoint_raw_results.csv
 ```
 
 <br>
 
-### FPL Hot-Path Overhead
+### 5.5 FPL Hot-Path Overhead
 
 This experiment corresponds to the steady-state FPL accounting overhead
 reported in Section 4.2.3, Overhead Characterization, and plotted in Figure 12.
@@ -412,7 +533,7 @@ sudo sh run_fpl_hotpath_real_matrix.sh
 
 The full FPL matrix writes raw results to:
 
-```text
+```bash
 bc_eh_test/scsi_debug/fpl_perf_real/fpl_raw_results.csv
 ```
 
@@ -425,103 +546,13 @@ sudo sh run_fpl_hotpath_matrix.sh
 
 <br>
 
-## Run iSCSI Experiments
+## 6. Run iSCSI Experiments
 
-The iSCSI experiment runs a software iSCSI path: the host provides a
-file-backed iSCSI target, and `iscsi-vm` connects to it as the software
-initiator.
-
-On the host, first choose one unused private host-guest IP address for the
-iSCSI portal. `net_ready.sh` assigns this address to the host-side `br-iscsi`
-bridge. The `iscsi-vm` guest will use the same address when connecting to the
-target. This address does not need to match the host's normal LAN address; it
-only needs to come from an unused private subnet that does not conflict with
-the host's existing networks, VPNs, Docker/libvirt bridges, or routes. For
-example, use `10.66.0.1` if `10.66.0.0/24` is unused on the host.
-
-```bash
-cd 2004-BC-EH-Artifact-Evaluation
-
-export BC_EH_ISCSI_PORTAL_IP=<host-private-ip>   # for example: 10.66.0.1
-```
-
-If a previous iSCSI run left host-side state behind, clean it before starting
-again. These cleanup scripts are safe to run repeatedly:
-
-```bash
-sudo bash bc_eh_test/LLDD/iscsi_tcp/destroy_host.sh
-sudo bash bc_eh_test/LLDD/iscsi_tcp/net_cleanup.sh
-```
-
-Prepare the host-side network and target, then start `iscsi-vm`:
-
-```bash
-sudo -E bash bc_eh_test/LLDD/iscsi_tcp/net_ready.sh
-sudo -E bash bc_eh_test/LLDD/iscsi_tcp/create_host.sh
-sudo make iscsi
-ssh -p 2210 root@127.0.0.1
-```
-
-`sudo -E` keeps `BC_EH_ISCSI_PORTAL_IP` visible to the root shell used by the
-host-side setup scripts.
+Run the iSCSI experiments on the prepared initiator node after the target side has been prepared and verified as described above.
 
 <br>
 
-### Expected iSCSI Setup State
-
-The iSCSI target uses file-backed LUNs on the host; it does not require a
-physical disk or a hardware storage controller.
-
-After `net_ready.sh` and `create_host.sh` complete on the host, the host should
-have:
-
-```text
-host network:   br-iscsi up, with <host-private-ip>/24 assigned
-tap device:     tap-iscsi0 attached to br-iscsi
-target IQN:     iqn.2026-06.com.bc-eh:target0
-initiator IQN:  iqn.2026-06.com.bc-eh:iscsi-vm
-portal:         <host-private-ip>:3260
-backstore type: targetcli fileio
-LUN 0:          /var/lib/bc-eh-iscsi/lun0.img, 4 GiB
-LUN 1:          /var/lib/bc-eh-iscsi/lun1.img, 4 GiB
-```
-
-Useful host-side checks are:
-
-```bash
-ip -4 addr show br-iscsi
-ip link show tap-iscsi0
-sudo targetcli /iscsi/iqn.2026-06.com.bc-eh:target0/tpg1 ls
-sudo ls -lh /var/lib/bc-eh-iscsi/lun*.img
-```
-
-Inside `iscsi-vm`, use the same portal IP. The optional connectivity check
-below logs in to the target and should show one `iscsi_tcp` host plus two iSCSI
-LUNs:
-
-```bash
-cd ~/2004-BC-EH-Artifact-Evaluation/bc_eh_test/LLDD/iscsi_tcp
-
-export BC_EH_ISCSI_PORTAL_IP=<same-host-private-ip>
-
-sudo -E sh guest_connect.sh
-iscsiadm -m session
-ls -l /dev/disk/by-path | grep iscsi
-```
-
-The expected result is that `guest_connect.sh` exits successfully,
-`iscsiadm -m session` shows a session to
-`iqn.2026-06.com.bc-eh:target0` at `<host-private-ip>:3260`, and
-`/dev/disk/by-path` contains two iSCSI LUN links:
-
-```text
-ip-<host-private-ip>:3260-iscsi-iqn.2026-06.com.bc-eh:target0-lun-0
-ip-<host-private-ip>:3260-iscsi-iqn.2026-06.com.bc-eh:target0-lun-1
-```
-
-<br>
-
-### Paper-Mapped iSCSI Case
+### 6.1 Paper-Mapped iSCSI Case
 
 The iSCSI results in Figure 13 and Table 7 come from `iscsi_tcp/P1`. Figure 13
 uses the healthy-sibling `fio` throughput timeline from the P1 runs, and Table
@@ -531,7 +562,7 @@ log of the same P1 runs.
 ```bash
 cd ~/2004-BC-EH-Artifact-Evaluation/bc_eh_test/LLDD/iscsi_tcp
 
-export BC_EH_ISCSI_PORTAL_IP=<same-host-private-ip>
+export BC_EH_ISCSI_PORTAL_IP=<host-private-ip>
 
 sudo -E sh linux-eh/iscsi_tcp_P1.sh
 sudo -E sh bc-eh/iscsi_tcp_P1.sh
@@ -540,7 +571,7 @@ sudo -E sh bc-eh/iscsi_tcp_P1.sh
 Each run prints a `RESULT` line with its output directory. The output directory
 is under:
 
-```text
+```bash
 /tmp/bc_eh_test/iscsi_tcp/<linux-eh|bc-eh>/P1/<timestamp>/
 ```
 
@@ -558,17 +589,19 @@ same P1 output directory to extract the fault-object recovery latency
 
 <br>
 
-## Run Kafka JBOD Experiments
+## 7. Run Kafka JBOD Experiments
 
-Start the Kafka VM set from the host:
+For QEMU/KVM deployments, start the Kafka nodes from the host:
 
 ```bash
-cd 2004-BC-EH-Artifact-Evaluation
+cd ~/2004-BC-EH-Artifact-Evaluation
 make kafka
 ```
 
-Then log into the broker VMs and prepare their local `scsi_debug`-backed data
-disks:
+For physical-machine deployments, replace the QEMU/KVM SSH forwarding commands
+with direct SSH access to the corresponding machines.
+
+Then log into each broker node and prepare its local `scsi_debug`-backed data disks:
 
 ```bash
 ssh -p 2201 root@127.0.0.1
@@ -576,11 +609,12 @@ cd ~/2004-BC-EH-Artifact-Evaluation/bc_eh_test/scsi_debug/kafka_jbod
 sudo bash setup_kafka_jbod_baseline.sh
 ```
 
-Repeat the same setup on `kafka-2` and `kafka-3` using ports `2202` and
-`2203`.
+For QEMU/KVM deployments, repeat the same setup on `kafka-2` and `kafka-3`
+using ports `2202` and `2203`. For physical-machine deployments, run the same
+setup on the corresponding broker machines.
 
 After all three broker setup scripts finish, run the basic Kafka cluster
-validation on one broker VM, for example `kafka-1`:
+validation on one broker node, for example `kafka-1`:
 
 ```bash
 ssh -p 2201 root@127.0.0.1
@@ -590,7 +624,7 @@ sudo bash basic_validation/run_basic_validation.sh
 ```
 
 Then select exactly one formal topic layout wrapper for the experiment round.
-Run one of the following on one broker VM, normally `kafka-1`:
+Run one of the following on one broker node, normally `kafka-1`:
 
 ```bash
 cd ~/2004-BC-EH-Artifact-Evaluation/bc_eh_test/scsi_debug/kafka_jbod
@@ -624,7 +658,7 @@ The `default_layout` wrapper is useful for a default-layout sanity check, but
 the paper's six fixed-layout Kafka panels use `fixed_6_16` and
 `leader_tilt_12_4`.
 
-For the selected round, use the client VM for the producer workload:
+For the selected round, use the client node for the producer workload:
 
 ```bash
 ssh -p 2204 root@127.0.0.1
@@ -649,17 +683,17 @@ BC-EH rounds. The offline case does not auto-recover the faulted disk; rerun
 the broker setup before the next Kafka round. The recoverable-stall case is a
 separate round and should be run only when that row is selected.
 
-Kafka outputs are split across the client VM and the fault-injection broker
-VM. On `kafka-client`, the producer workload writes the throughput timeline
+Kafka outputs are split across the client node and the fault-injection broker
+node. On `kafka-client`, the producer workload writes the throughput timeline
 and per-partition summaries to:
 
-```text
+```bash
 bc_eh_test/scsi_debug/kafka_jbod/workload/output/
 ```
 
 Important files include:
 
-```text
+```bash
 jbod-hot.formal_pinned_partition_workload.stdout.timestamped.log
 jbod-hot.formal_pinned_partition_workload.report_time.csv
 jbod-hot.formal_pinned_partition_workload.worker_summary.csv
@@ -669,19 +703,19 @@ jbod-hot.formal_pinned_partition_workload.meta.txt
 On `kafka-1`, each fault-injection run writes one timestamped output
 directory under:
 
-```text
+```bash
 bc_eh_test/scsi_debug/kafka_jbod/fault_injection/output/
 ```
 
 The directory name has the form:
 
-```text
+```bash
 <timestamp>.<single_disk_offline|single_disk_recoverable_stall>.<linux-eh|bc-eh>.<host|sdev>/
 ```
 
 Important files include:
 
-```text
+```bash
 run.meta.txt
 dmesg.txt
 pre_fault/
@@ -699,68 +733,7 @@ The detailed Kafka JBOD guide is
 
 <br>
 
-## Optional: Kernel Build and Installation Inside the VM
-
-The provided Ubuntu VM images already have the latest BC-EH kernel built and
-installed. A prepared VM should boot into `6.18.0-bceh`. Evaluators can boot
-the VM images and run the test scripts directly. Rebuilding the kernel is only
-needed when modifying the kernel source or when checking the build process
-from source.
-
-`atclinux/` already includes the intended `.config` file. When rebuilding
-inside the provided VM, the kernel configuration does not need to be changed.
-If this kernel is installed on bare metal, users should re-check the
-machine-specific options required by their own system, such as boot disk,
-network adapter, filesystem, and storage-controller drivers.
-
-Run the following commands inside the VM:
-
-```bash
-cd ~/2004-BC-EH-Artifact-Evaluation/atclinux
-
-# Optional: run only if the kernel tree asks for new config options.
-# make olddefconfig
-
-# Build the kernel image and modules with a stable AE-local kernel release.
-make LOCALVERSION=-bceh -j"$(nproc)"
-
-# Install the modules and kernel image into the VM.
-sudo make LOCALVERSION=-bceh modules_install
-sudo make LOCALVERSION=-bceh install
-
-# Make GRUB boot the installed BC-EH kernel by default.
-sudo grep -n "menuentry 'Ubuntu, with Linux 6.18.0-bceh" /boot/grub/grub.cfg
-sudo sed -i 's|^GRUB_DEFAULT=.*|GRUB_DEFAULT="Advanced options for Ubuntu>Ubuntu, with Linux 6.18.0-bceh"|' /etc/default/grub
-sudo update-grub
-
-# Shut down the VM, then restart it from the host with the Makefile target.
-sudo shutdown now
-```
-
-After restarting the VM from the host, check the running kernel and the
-`scsi_debug` module:
-
-```bash
-uname -r
-sudo modprobe scsi_debug
-lsmod | grep scsi_debug
-sudo modprobe -r scsi_debug
-```
-
-The expected `uname -r` output is:
-
-```text
-6.18.0-bceh
-```
-
-After `modprobe scsi_debug` succeeds, the test scripts under
-`bc_eh_test/scsi_debug/` can be executed. Linux EH and BC-EH are selected
-through the `eh_mode` interface in the same BC-EH kernel; two separate kernels
-are not required.
-
-<br>
-
-## Kernel Source Overview
+## 8. Kernel Source Overview
 
 BC-EH is implemented on top of Linux v6.18
 (base commit: 7d0a66e4bb9081d75c82ec4957c50034cb0ea449).
@@ -854,15 +827,12 @@ SCSI error-handling core and shared SCSI infrastructure:
   the controlled fault-injection logic in `libiscsi.c`.
 
 - `drivers/scsi/libiscsi.c`
-  Adds iSCSI experiment controls such as `bc_iscsi_test_mode`,
-  `bc_iscsi_fault_active`, and `bc_iscsi_hold_tur`, plus completion-drop and
-  fake-reset behavior used by the P1 iSCSI case. This makes the iSCSI fault path
-  reproducible inside the Ubuntu guest without relying on uncontrolled external
-  target failures.
-
+  Adds iSCSI experiment controls such as `bc_iscsi_test_mode`, `bc_iscsi_fault_active`, and `bc_iscsi_hold_tur`, plus completion-drop  
+  and fake-reset behavior used by the P1 iSCSI case. This makes the iSCSI fault path reproducible on the prepared iSCSI initiator node
+  without relying on uncontrolled external target failures.
 <br>
 
-## Artifact Scope and Limitations
+## 9. Artifact Scope and Limitations
 
 This AE package focuses on the software-reproducible artifact path:
 
@@ -875,9 +845,5 @@ The paper also evaluates hardware-dependent paths involving `mpt3sas` and
 `megaraid_sas` with specific SAS HBA/RAID controllers. Those hardware-driver
 paths are not part of this AE package because they require local controller
 hardware that cannot be assumed for evaluators.
-
-The `ubuntu20046_x86_64.img` file is the backing image for the overlay VMs.
-It is included to make the overlays bootable; the normal AE path should use the
-overlay images rather than modifying the base image.
 
 <br>

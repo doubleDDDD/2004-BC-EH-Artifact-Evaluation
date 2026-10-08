@@ -1,17 +1,17 @@
 # Kafka JBOD scsi_debug experiment guide
 
-This directory contains the guest-side setup, validation, workload, and
+This directory contains the node-side setup, validation, workload, and
 fault-injection scripts for the Kafka JBOD experiment.
 
-The provided Kafka VM images have Kafka installed at
-`/root/kafka_2.13-4.2.0`.
+The Kafka scripts expect Apache Kafka 4.2.0 to be installed at `/root/kafka_2.13-4.2.0` on all Kafka nodes: `kafka-1`, `kafka-2`, `kafka-3`, and `kafka-client`.
+
 <br>
 
 ## Directory Overview
 
 This `README.md` describes the files and subdirectories at this level:
 
-```text
+```bash
 kafka_jbod/
 ├── basic_validation/
 ├── formal_topic/
@@ -33,14 +33,14 @@ kafka_jbod/
 ```
 
 - `basic_validation/`
-  Broker-side Kafka cluster sanity check, normally run on one broker VM such as
+  Broker-side Kafka cluster sanity check, normally run on one broker node such as
   `kafka-1` after all three brokers are running. It checks bootstrap
   connectivity, KRaft quorum status, and creation/description of a replicated
   `smoke` topic. Run `sudo bash basic_validation/run_basic_validation.sh`.
 
 - `formal_topic/` (run one layout wrapper)
   Cluster-level topic creation and log-directory layout setup/checks for the
-  formal Kafka runs, normally run once on one broker VM such as `kafka-1`.
+  formal Kafka runs, normally run once on one broker node such as `kafka-1`.
   It provides three layout entries: `default_layout/`, `fixed_6_16/`, and
   `leader_tilt_12_4/`. Select the layout by running the corresponding wrapper
   script; the directory itself is not a single command entry. For one
@@ -70,16 +70,16 @@ kafka_jbod/
 
 - `setup_kafka_jbod_baseline.sh`
   Main broker-side setup entry. Run `sudo bash setup_kafka_jbod_baseline.sh`
-  once on each broker VM: `kafka-1`, `kafka-2`, and `kafka-3`.
+  once on each broker node: `kafka-1`, `kafka-2`, and `kafka-3`.
 
 - `cleanup_kafka_jbod_baseline.sh`
   Broker-side cleanup entry for stopping Kafka and removing the local
-  `scsi_debug` data-disk topology. Run it once on each broker VM when tearing
+  `scsi_debug` data-disk topology. Run it once on each broker node when tearing
   down the baseline.
 
 - `cleanup_kafka_jbod_experiment_outputs.sh`
   Clears generated experiment outputs while keeping the broker baseline intact.
-  Run it on the VM where previous output files should be removed before a fresh
+  Run it on the node where previous output files should be removed before a fresh
   measurement round.
 
 - `README.md`
@@ -99,7 +99,7 @@ kafka_jbod/
 
 - `02_format_local_kafka_storage.sh` (no need to run directly)
   Internal setup step called by `setup_kafka_jbod_baseline.sh`; it runs
-  Kafka-level storage format for the local broker selected by the VM's cluster
+  Kafka-level storage format for the local broker selected by the node's cluster
   IP, after the data disks have been mounted.
 
 - `03_start_local_kafka_broker.sh` (no need to run directly)
@@ -108,7 +108,7 @@ kafka_jbod/
 
 - `10_load_kafka_jbod_topology.sh` (no need to run directly)
   Internal setup step called by `setup_kafka_jbod_baseline.sh`; it loads the
-  three-disk `scsi_debug` JBOD topology inside a broker VM.
+  three-disk `scsi_debug` JBOD topology on a broker node.
 
 - `11_prepare_kafka_data_mounts.sh` (no need to run directly)
   Internal setup step called by `setup_kafka_jbod_baseline.sh`; it performs
@@ -127,8 +127,8 @@ kafka_jbod/
 
 <br>
 
-## Current 4-VM setup
-- The current setup uses three Kafka broker VMs and one Kafka client VM.
+## QEMU/KVM 4-Node Setup
+- The QEMU/KVM setup uses three Kafka broker VMs and one Kafka client VM.
 - The three broker VMs use `scsi_debug`-backed Kafka data disks.
 - The client VM is used for producer workload generation.
 - Each VM uses two NICs.
@@ -165,11 +165,12 @@ ssh -p 2204 root@127.0.0.1   # kafka-client
 
 <br>
 
-### QEMU startup
-Start the Kafka VM set from the artifact root directory:
+### QEMU Startup
+
+Start the Kafka VMs from the artifact root directory:
 
 ```bash
-cd 2004-BC-EH-Artifact-Evaluation
+cd ~/2004-BC-EH-Artifact-Evaluation
 make kafka
 ```
 
@@ -185,8 +186,8 @@ make kafka-client
 <br>
 
 ## Expected Setup Result
-After `setup_kafka_jbod_baseline.sh` finishes on a broker VM, that VM should
-show the following state.
+
+After `setup_kafka_jbod_baseline.sh` finishes on a broker node, that node should show the following state. The setup script automatically runs `12_verify_kafka_jbod_layout.sh` to verify the `scsi_debug` topology, data-disk mounts, Kafka log directories, and queue-control files.
 
 <br>
 
@@ -194,7 +195,7 @@ show the following state.
 
 The broker should have three `scsi_debug` data disks mounted for Kafka:
 
-```text
+```bash
 target 0 -> /data/kafka-1
 target 1 -> /data/kafka-2
 target 2 -> /data/kafka-3
@@ -202,7 +203,7 @@ target 2 -> /data/kafka-3
 
 The `scsi_debug` topology printed by the setup script should show:
 
-```text
+```bash
 1 host / 1 channel / 3 targets / 1 lun per target
 ```
 
@@ -212,7 +213,7 @@ The `scsi_debug` topology printed by the setup script should show:
 
 Kafka topic data should be under:
 
-```text
+```bash
 /data/kafka-1/kafka-logs
 /data/kafka-2/kafka-logs
 /data/kafka-3/kafka-logs
@@ -220,7 +221,7 @@ Kafka topic data should be under:
 
 Kafka KRaft metadata should remain on the system disk:
 
-```text
+```bash
 /var/lib/kafka-metadata
 ```
 
@@ -231,7 +232,7 @@ Kafka KRaft metadata should remain on the system disk:
 The setup script configures symmetric queue settings for the three
 `scsi_debug` Kafka data disks:
 
-```text
+```bash
 queue_depth = 64 per disk
 nr_requests = 64 per disk
 host_max_queue = 192
@@ -239,27 +240,32 @@ max_queue = 192
 ```
 
 Here `192 = 64 * 3`, matching the three Kafka data disks created for each
-broker VM.
+broker node.
 
 <br>
 
 ### Cluster Readiness
 
 - After `setup_kafka_jbod_baseline.sh` has finished on `kafka-1`, `kafka-2`,
-  and `kafka-3`, each broker VM should expose the same three-disk Kafka data
+  and `kafka-3`, each broker node should expose the same three-disk Kafka data
   layout.
 - After all three brokers finish setup,
-  `basic_validation/run_basic_validation.sh` should succeed on one broker VM.
+  `basic_validation/run_basic_validation.sh` should succeed on one broker node.
 - Before starting the producer workload, one `formal_topic/` layout wrapper
-  should succeed on one broker VM.
+  should succeed on one broker node.
 
 <br>
 
 ## Fault-Injection Stage
+
 Run fault-injection scripts after broker setup, basic validation, and formal
 topic layout have completed, and after the producer workload has started. The
 default fault target is broker 1, target 0, corresponding to
 `/data/kafka-1/kafka-logs`; run these scripts on `kafka-1`.
+
+Run only the fault-injection entry corresponding to the selected experiment
+case. These commands represent separate experiment runs and should not be
+executed sequentially within the same round.
 
 Linux EH entries:
 
@@ -280,10 +286,14 @@ entries select the `sdev` recovery path. The `offline` case injects one
 unrecoverable single-disk fault. The `recoverable_stall` case injects one
 long-timeout single-disk fault that eventually recovers.
 
+The `offline` case does not auto-recover the faulted disk. After an offline
+case finishes, rerun `setup_kafka_jbod_baseline.sh` on the affected broker
+before starting the next Kafka round.
+
 These fault-injection scripts do not start or stop the producer workload. Raw
 outputs are written to:
 
-```text
+```bash
 fault_injection/output/<timestamp>.<case>.<eh_profile>.<eh_mode>/
 ```
 
